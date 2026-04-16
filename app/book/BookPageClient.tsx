@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '@/lib/supabase/client'
 
 type Service = {
   id: string
@@ -102,10 +97,14 @@ export default function BookingPage() {
 
     setLoading(true)
 
-    // GET USER
+    // ✅ FIXED AUTH (THIS IS THE KEY)
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    const user = session?.user
+
+    console.log('USER:', user)
 
     const { error } = await supabase.from('appointments').insert([
       {
@@ -114,10 +113,13 @@ export default function BookingPage() {
         appointment_date: new Date(date).toISOString().split('T')[0],
         appointment_time: time,
         client_name: name,
-        phone,
+        phone: phone,
         email: email || null,
+
+        // ✅ WILL NOW WORK
         user_id: user?.id || null,
         created_by: user?.id || null,
+
         status: 'upcoming',
         archived: false,
         source: 'website',
@@ -130,7 +132,7 @@ export default function BookingPage() {
       return
     }
 
-    // ✅ SEND EMAIL (ONLY IF EMAIL EXISTS)
+    // SEND EMAIL
     if (email) {
       try {
         await fetch('/api/send-booking-email', {
@@ -147,14 +149,13 @@ export default function BookingPage() {
             location,
           }),
         })
-      } catch (e) {
+      } catch {
         console.log('Email failed (non-blocking)')
       }
     }
 
     setLoading(false)
 
-    // ✅ REDIRECT WITH DATA
     router.push(
       `/book/success?service=${encodeURIComponent(selectedService.name)}&date=${date}&time=${time}&location=${location}&name=${encodeURIComponent(name)}`
     )

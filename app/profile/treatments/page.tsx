@@ -36,11 +36,12 @@ export default function TreatmentHistoryPage() {
       return
     }
 
-    // ✅ CORRECT QUERY (USES user_id)
+    // ✅ ONLY COMPLETED VISITS
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('user_id', user.id)
+      .in('status', ['arrived', 'completed']) // 🔥 important
       .order('appointment_date', { ascending: false })
 
     if (!error && data) {
@@ -56,6 +57,14 @@ export default function TreatmentHistoryPage() {
     return 'text-yellow-600'
   }
 
+  const formatDate = (date: string) => {
+    try {
+      return new Date(date).toLocaleDateString()
+    } catch {
+      return date
+    }
+  }
+
   return (
     <div className="min-h-screen bg-neutral-100 p-6">
       <div className="max-w-xl mx-auto space-y-6">
@@ -63,7 +72,7 @@ export default function TreatmentHistoryPage() {
         {/* HEADER */}
         <button
           onClick={() => router.push('/profile')}
-          className="text-sm text-gray-500"
+          className="text-sm text-gray-500 hover:text-black"
         >
           ← Back
         </button>
@@ -73,7 +82,7 @@ export default function TreatmentHistoryPage() {
         {/* LOADING */}
         {loading && (
           <div className="text-center text-gray-400 py-10">
-            Loading...
+            Loading your treatments...
           </div>
         )}
 
@@ -89,25 +98,30 @@ export default function TreatmentHistoryPage() {
           {appointments.map((a) => (
             <div
               key={a.id}
-              className="bg-white p-5 rounded-2xl shadow space-y-2"
+              className="bg-white p-5 rounded-2xl shadow hover:shadow-md transition"
             >
-              <div className="flex justify-between items-center">
+              {/* TOP */}
+              <div className="flex justify-between items-center mb-2">
                 <h3 className="font-semibold">{a.service}</h3>
-                <span className={`text-sm ${getStatusColor(a.status)}`}>
+
+                <span className={`text-sm capitalize ${getStatusColor(a.status)}`}>
                   {a.status}
                 </span>
               </div>
 
+              {/* LOCATION */}
               <p className="text-sm text-gray-500">
                 📍 {a.location}
               </p>
 
+              {/* DATE */}
               <p className="text-sm text-gray-500">
-                📅 {new Date(a.appointment_date).toLocaleDateString()} • {a.appointment_time}
+                📅 {formatDate(a.appointment_date)} • {a.appointment_time?.slice(0,5)}
               </p>
 
+              {/* PRICE */}
               {a.total_amount && (
-                <p className="text-sm text-[#C6A96B] font-medium">
+                <p className="text-sm text-[#C6A96B] font-semibold mt-1">
                   €{a.total_amount}
                 </p>
               )}
