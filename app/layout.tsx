@@ -15,8 +15,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} bg-white text-neutral-900`}>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className={`${inter.variable} ${playfair.variable} bg-white text-neutral-900`}
+      >
         <CartProvider>
           <Header />
           <main className="pt-20">{children}</main>

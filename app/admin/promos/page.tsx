@@ -25,7 +25,6 @@ export default function PromoPage() {
     is_active: true,
   })
 
-  // FETCH
   const fetchPromos = async () => {
     const { data } = await supabase
       .from('promo_codes')
@@ -39,19 +38,25 @@ export default function PromoPage() {
     fetchPromos()
   }, [])
 
-  // CHANGE
   const handleChange = (key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  // SAVE
   const handleSave = async () => {
     setLoading(true)
 
+    const payload = {
+      code: form.code,
+      discount_type: form.discount_type,
+      discount_value: form.discount_value,
+      expires_at: form.expires_at || null, // ✅ important
+      is_active: form.is_active,
+    }
+
     if (editingId) {
-      await supabase.from('promo_codes').update(form).eq('id', editingId)
+      await supabase.from('promo_codes').update(payload).eq('id', editingId)
     } else {
-      await supabase.from('promo_codes').insert([form])
+      await supabase.from('promo_codes').insert([payload])
     }
 
     setForm({
@@ -67,13 +72,14 @@ export default function PromoPage() {
     fetchPromos()
   }
 
-  // EDIT
   const handleEdit = (promo: Promo) => {
-    setForm(promo)
+    setForm({
+      ...promo,
+      expires_at: promo.expires_at || '',
+    })
     setEditingId(promo.id)
   }
 
-  // DELETE
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this promo code?')) return
     await supabase.from('promo_codes').delete().eq('id', id)
@@ -84,40 +90,65 @@ export default function PromoPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Promo Codes</h1>
 
-      {/* FORM */}
       <div className="bg-white p-6 rounded-xl shadow mb-8 space-y-4">
 
-        <input
-          placeholder="CODE (e.g. SUMMER10)"
-          value={form.code || ''}
-          onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
-          className="w-full border p-3 rounded-xl"
-        />
+        {/* CODE */}
+        <div>
+          <label className="text-sm font-medium">Promo Code</label>
+          <input
+            placeholder="e.g. SUMMER10"
+            value={form.code || ''}
+            onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
+            className="w-full border p-3 rounded-xl mt-1"
+          />
+        </div>
 
-        <select
-          value={form.discount_type}
-          onChange={(e) => handleChange('discount_type', e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        >
-          <option value="percentage">Percentage (%)</option>
-          <option value="fixed">Fixed (€)</option>
-        </select>
+        {/* TYPE */}
+        <div>
+          <label className="text-sm font-medium">Discount Type</label>
+          <select
+            value={form.discount_type}
+            onChange={(e) => handleChange('discount_type', e.target.value)}
+            className="w-full border p-3 rounded-xl mt-1"
+          >
+            <option value="percentage">Percentage (%)</option>
+            <option value="fixed">Fixed (€)</option>
+          </select>
+        </div>
 
-        <input
-          type="number"
-          placeholder="Discount Value"
-          value={form.discount_value || 0}
-          onChange={(e) => handleChange('discount_value', Number(e.target.value))}
-          className="w-full border p-3 rounded-xl"
-        />
+        {/* VALUE */}
+        <div>
+          <label className="text-sm font-medium">Discount Value</label>
+          <div className="relative">
+            <input
+              type="number"
+              value={form.discount_value || 0}
+              onChange={(e) => handleChange('discount_value', Number(e.target.value))}
+              className="w-full border p-3 pr-10 rounded-xl mt-1"
+            />
+            <span className="absolute right-3 top-4 text-gray-400">
+              {form.discount_type === 'percentage' ? '%' : '€'}
+            </span>
+          </div>
+        </div>
 
-        <input
-          type="date"
-          value={form.expires_at || ''}
-          onChange={(e) => handleChange('expires_at', e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        />
+        {/* EXPIRES */}
+        <div>
+          <label className="text-sm font-medium">
+            Expiration Date (optional)
+          </label>
+          <input
+            type="date"
+            value={form.expires_at || ''}
+            onChange={(e) => handleChange('expires_at', e.target.value)}
+            className="w-full border p-3 rounded-xl mt-1"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Leave empty if the promo should never expire
+          </p>
+        </div>
 
+        {/* ACTIVE */}
         <div className="flex items-center gap-3">
           <input
             type="checkbox"

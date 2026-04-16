@@ -17,6 +17,8 @@ type Product = {
 export default function ProductsAdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const [form, setForm] = useState<Partial<Product>>({
     name: '',
@@ -29,36 +31,31 @@ export default function ProductsAdminPage() {
   })
 
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
-  // FETCH
   const fetchProducts = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (data) setProducts(data)
+    if (error) {
+      setError(error.message)
+      return
+    }
+
+    setProducts(data || [])
   }
 
   useEffect(() => {
     fetchProducts()
   }, [])
 
-  // CHANGE
   const handleChange = (key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  // SAVE
-  const handleSave = async () => {
-    setLoading(true)
-
-    if (editingId) {
-      await supabase.from('products').update(form).eq('id', editingId)
-    } else {
-      await supabase.from('products').insert([form])
-    }
-
+  const resetForm = () => {
     setForm({
       name: '',
       description: '',
@@ -68,99 +65,245 @@ export default function ProductsAdminPage() {
       sale_price: null,
       is_active: true,
     })
-
     setEditingId(null)
-    setLoading(false)
-    fetchProducts()
+    setShowModal(false)
   }
 
-  // EDIT
+  // IMAGE UPLOAD
+  const handleImageUpload = async (file: File) => {
+    const fileName = `${Date.now()}-${file.name}`
+
+    const { error } = await supabase.storage
+      .from('products')
+      .upload(fileName, file)
+
+    if (error) {
+      setError(error.message)
+      return
+    }
+
+    const { data } = supabase.storage
+      .from('products')
+      .getPublicUrl(fileName)
+
+    handleChange('image_url', data.publicUrl)
+  }
+
+  const validate = () => {
+    if (!form.name) return 'Product name required'
+    if (!form.price || form.price <= 0) return 'Price must be > 0'
+    if (form.is_on_sale && (!form.sale_price || form.sale_price <= 0)) {
+      return 'Invalid sale price'
+    }
+    return null
+  }
+
+  const handleSave = async () => {
+    setError(null)
+    setSuccess(null)
+
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setLoading(true)
+
+    const payload = {
+      name: form.name,
+      description: form.description || '',
+      price: form.price,
+      image_url: form.image_url || '',
+      is_on_sale: form.is_on_sale,
+      sale_price: form.is_on_sale ? form.sale_price : null,
+      is_active: form.is_active,
+    }
+
+    let res
+
+    if (editingId) {
+      res = await supabase.from('products').update(payload).eq('id', editingId)
+    } else {
+      res = await supabase.from('products').insert([payload])
+    }
+
+    if (res.error) {
+      setError(res.error.message)
+    } else {
+      setSuccess(editingId ? 'Product updated' : 'Product created')
+      resetForm()
+      fetchProducts()
+    }
+
+    setLoading(false)
+  }
+
   const handleEdit = (product: Product) => {
     setForm(product)
     setEditingId(product.id)
+    setShowModal(true)
   }
 
-  // DELETE
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this product?')) return
-    await supabase.from('products').delete().eq('id', id)
-    fetchProducts()
+
+    const { error } = await supabase.from('products').delete().eq('id', id)
+
+    if (error) setError(error.message)
+    else {
+      setSuccess('Deleted')
+      fetchProducts()
+    }
   }
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Products</h1>
 
+      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {success && <div className="text-green-600 mb-4">{success}</div>}
+
       {/* FORM */}
       <div className="bg-white p-6 rounded-xl shadow mb-8 space-y-4">
 
-        <input
-          placeholder="Product Name"
-          value={form.name || ''}
-          onChange={(e) => handleChange('name', e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        />
+        <input placeholder="Product Name" value={form.name || ''} onChange={(e) => handleChange('name', e.target.value)} className="w-full border p-3 rounded-xl" />
 
-        <textarea
-          placeholder="Description"
-          value={form.description || ''}
-          onChange={(e) => handleChange('description', e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        />
+        <textarea placeholder="Description" value={form.description || ''} onChange={(e) => handleChange('description', e.target.value)} className="w-full border p-3 rounded-xl" />
 
-        <input
-          placeholder="Image URL"
-          value={form.image_url || ''}
-          onChange={(e) => handleChange('image_url', e.target.value)}
-          className="w-full border p-3 rounded-xl"
-        />
-
-        <input
-          type="number"
-          placeholder="Price"
-          value={form.price || 0}
-          onChange={(e) => handleChange('price', Number(e.target.value))}
-          className="w-full border p-3 rounded-xl"
-        />
+        {/* PRICE */}
+        <div className="relative">
+          <span className="absolute left-3 top-3 text-gray-400">€</span>
+          <input type="number" value={form.price ?? 0} onChange={(e) => handleChange('price', Number(e.target.value))} className="w-full border p-3 pl-8 rounded-xl" />
+        </div>
 
         {/* SALE */}
         <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={form.is_on_sale || false}
-            onChange={(e) => handleChange('is_on_sale', e.target.checked)}
-          />
+          <input type="checkbox" checked={form.is_on_sale || false} onChange={(e) => handleChange('is_on_sale', e.target.checked)} />
           <span>On Sale</span>
         </div>
 
         {form.is_on_sale && (
-          <input
-            type="number"
-            placeholder="Sale Price"
-            value={form.sale_price || 0}
-            onChange={(e) => handleChange('sale_price', Number(e.target.value))}
-            className="w-full border p-3 rounded-xl"
-          />
+          <div className="relative">
+            <input type="number" value={form.sale_price ?? 0} onChange={(e) => handleChange('sale_price', Number(e.target.value))} className="w-full border p-3 pr-10 rounded-xl" />
+            <span className="absolute right-3 top-3 text-gray-400">€</span>
+          </div>
         )}
 
-        {/* ACTIVE */}
+        {/* IMAGE */}
+        <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])} />
+
         <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={form.is_active ?? true}
-            onChange={(e) => handleChange('is_active', e.target.checked)}
-          />
+          <input type="checkbox" checked={form.is_active ?? true} onChange={(e) => handleChange('is_active', e.target.checked)} />
           <span>Active</span>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="w-full bg-[#C6A96B] text-white py-3 rounded-xl"
-        >
-          {editingId ? 'Update Product' : 'Add Product'}
+        <button onClick={handleSave} className="w-full bg-[#C6A96B] text-white py-3 rounded-xl">
+          {loading ? 'Saving...' : editingId ? 'Update Product' : 'Add Product'}
         </button>
       </div>
+
+      {/* MODAL */}
+      {showModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-2xl w-full max-w-lg shadow-xl space-y-4">
+
+      <h2 className="text-xl font-semibold">Edit Product</h2>
+
+      {/* NAME */}
+      <input
+        placeholder="Product Name"
+        value={form.name || ''}
+        onChange={(e) => handleChange('name', e.target.value)}
+        className="w-full border p-3 rounded-xl"
+      />
+
+      {/* DESCRIPTION */}
+      <textarea
+        placeholder="Description"
+        value={form.description || ''}
+        onChange={(e) => handleChange('description', e.target.value)}
+        className="w-full border p-3 rounded-xl"
+      />
+
+      {/* PRICE */}
+      <div className="relative">
+        <span className="absolute left-3 top-3 text-gray-400">€</span>
+        <input
+          type="number"
+          value={form.price ?? 0}
+          onChange={(e) => handleChange('price', Number(e.target.value))}
+          className="border p-3 pl-8 rounded-xl w-full"
+        />
+      </div>
+
+      {/* SALE */}
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={form.is_on_sale || false}
+          onChange={(e) => handleChange('is_on_sale', e.target.checked)}
+        />
+        <span>On Sale</span>
+      </div>
+
+      {form.is_on_sale && (
+        <div className="relative">
+          <input
+            type="number"
+            value={form.sale_price ?? 0}
+            onChange={(e) => handleChange('sale_price', Number(e.target.value))}
+            className="border p-3 pr-10 rounded-xl w-full"
+          />
+          <span className="absolute right-3 top-3 text-gray-400">%</span>
+        </div>
+      )}
+
+      {/* IMAGE */}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) =>
+          e.target.files && handleImageUpload(e.target.files[0])
+        }
+      />
+
+      {/* IMAGE PREVIEW */}
+      {form.image_url && (
+        <img
+          src={form.image_url}
+          className="w-24 h-24 object-cover rounded-xl"
+        />
+      )}
+
+      {/* ACTIVE */}
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={form.is_active ?? true}
+          onChange={(e) => handleChange('is_active', e.target.checked)}
+        />
+        <span>Active</span>
+      </div>
+
+      {/* BUTTONS */}
+      <button
+        onClick={handleSave}
+        className="w-full bg-[#C6A96B] text-white py-3 rounded-xl"
+      >
+        Save Changes
+      </button>
+
+      <button
+        onClick={() => setShowModal(false)}
+        className="w-full border py-3 rounded-xl"
+      >
+        Cancel
+      </button>
+
+    </div>
+  </div>
+)}
 
       {/* LIST */}
       <div className="grid gap-4">
@@ -169,54 +312,24 @@ export default function ProductsAdminPage() {
             ? product.sale_price
             : product.price
 
-          const discount = product.is_on_sale && product.sale_price
-            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
-            : 0
-
           return (
             <div key={product.id} className="bg-white p-4 rounded-xl shadow flex justify-between items-center">
 
               <div className="flex gap-4 items-center">
-                <img
-                  src={product.image_url || '/assets/product1.jpg'}
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
+                <img src={product.image_url || '/assets/product1.jpg'} className="w-16 h-16 object-cover rounded-lg" />
 
                 <div>
                   <h3 className="font-semibold">{product.name}</h3>
-
-                  <p className="text-sm mt-1">
-                    {product.is_on_sale ? (
-                      <>
-                        <span className="line-through text-gray-400 mr-2">
-                          €{product.price}
-                        </span>
-                        <span className="text-green-600 font-semibold">
-                          €{finalPrice}
-                        </span>
-                        <span className="text-xs ml-2 text-red-500">
-                          -{discount}%
-                        </span>
-                      </>
-                    ) : (
-                      <>€{product.price}</>
-                    )}
-                  </p>
+                  <p>€{finalPrice}</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(product)}
-                  className="px-4 py-2 bg-yellow-400 rounded-lg text-sm"
-                >
+                <button onClick={() => handleEdit(product)} className="px-4 py-2 bg-yellow-400 rounded-lg text-sm">
                   Edit
                 </button>
 
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm"
-                >
+                <button onClick={() => handleDelete(product.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm">
                   Delete
                 </button>
               </div>

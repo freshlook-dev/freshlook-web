@@ -3,94 +3,126 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import Image from 'next/image'
+import AuthCard from '@/components/AuthCard'
 
 export default function LoginPage() {
-const router = useRouter()
+  const router = useRouter()
 
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
 
-const [email, setEmail] = useState('')
-const [password, setPassword] = useState('')
-const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-const handleLogin = async () => {
-if (!email || !password) {
-alert('Fill all fields')
-return
-}
+  const handleLogin = async () => {
+    setError(null)
 
+    if (!email || !password) {
+      setError('Please fill all fields')
+      return
+    }
 
-setLoading(true)
+    setLoading(true)
 
-const { data, error } = await supabase.auth.signInWithPassword({
-  email,
-  password,
-})
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-if (error) {
-  setLoading(false)
-  alert(error.message)
-  return
-}
+    if (error) {
+      setLoading(false)
+      setError(error.message)
+      return
+    }
 
-// ✅ Force session sync properly
-await supabase.auth.getSession()
+    await supabase.auth.getSession()
 
-setLoading(false)
+    setLoading(false)
 
-// ✅ Use router instead of hard reload
-router.push('/')
-router.refresh()
+    router.push('/')
+    router.refresh()
+  }
 
-
-}
-
-return ( <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4"> <div className="w-full max-w-md bg-white border rounded-2xl shadow p-8 space-y-6">
-
-
-    <div className="flex justify-center">
-      <Image src="/assets/logo.png" alt="logo" width={140} height={40} />
-    </div>
-
-    <h1 className="text-xl font-semibold text-center">Login</h1>
-
-    <input
-      type="email"
-      placeholder="Email"
-      value={email}
-      onChange={(e) => setEmail(e.target.value)}
-      className="w-full p-3 border rounded-lg"
-    />
-
-    <input
-      type="password"
-      placeholder="Password"
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      className="w-full p-3 border rounded-lg"
-    />
-
-    <button
-      onClick={handleLogin}
-      disabled={loading}
-      className="w-full bg-[#C6A96B] text-white py-3 rounded-lg"
+  return (
+    <AuthCard
+      title="Welcome back"
+      subtitle="Login to your account"
     >
-      {loading ? 'Logging in...' : 'Login'}
-    </button>
+      <div className="space-y-4">
 
-    <p className="text-sm text-center">
-      Don’t have an account?{' '}
-      <span
-        className="text-[#C6A96B] cursor-pointer"
-        onClick={() => router.push('/signup')}
-      >
-        Sign up
-      </span>
-    </p>
+        {/* EMAIL */}
+        <div>
+          <label className="text-sm text-gray-500">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full border p-3 rounded-xl mt-1"
+          />
+        </div>
 
-  </div>
-</div>
+        {/* PASSWORD */}
+        <div>
+          <label className="text-sm text-gray-500">Password</label>
 
+          <div className="relative mt-1">
+            <input
+              type={show ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border p-3 rounded-xl pr-12"
+            />
 
-)
+            <button
+              onClick={() => setShow(!show)}
+              className="absolute right-3 top-3 text-sm text-gray-500"
+            >
+              {show ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+
+        {/* FORGOT */}
+        <div className="text-right text-sm">
+          <button
+            onClick={() => router.push('/forgot-password')}
+            className="text-[#C6A96B] hover:underline"
+          >
+            Forgot password?
+          </button>
+        </div>
+
+        {/* ERROR */}
+        {error && (
+          <p className="text-red-500 text-sm">{error}</p>
+        )}
+
+        {/* BUTTON */}
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          className={`w-full py-3 rounded-xl text-white ${
+            loading
+              ? 'bg-gray-400'
+              : 'bg-[#C6A96B] hover:opacity-90'
+          }`}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+
+        {/* SIGNUP */}
+        <p className="text-sm text-center">
+          Don’t have an account?{' '}
+          <span
+            onClick={() => router.push('/signup')}
+            className="text-[#C6A96B] cursor-pointer"
+          >
+            Sign up
+          </span>
+        </p>
+
+      </div>
+    </AuthCard>
+  )
 }

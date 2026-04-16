@@ -1,13 +1,21 @@
 'use client'
 
 import { useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
-import { supabase } from '@/lib/supabase/client'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { cart, clearCart } = useCart()
+
+  const {
+    cart,
+    subtotal,
+    total,
+    discount,
+    promo,
+    clearCart,
+  } = useCart()
 
   const [loading, setLoading] = useState(false)
 
@@ -19,20 +27,16 @@ export default function CheckoutPage() {
     payment_method: 'cash',
   })
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const subtotal = cart.reduce((acc, item) => {
-    const price =
-      item.is_on_sale && item.sale_price
-        ? item.sale_price
-        : item.price
+  const handleSubmit = async () => {
+    if (cart.length === 0) {
+      alert('Cart is empty')
+      return
+    }
 
-    return acc + price * item.quantity
-  }, 0)
-
-  const handleCheckout = async () => {
     if (!form.full_name || !form.phone || !form.address) {
       alert('Please fill all required fields')
       return
@@ -40,104 +44,148 @@ export default function CheckoutPage() {
 
     setLoading(true)
 
+    // ✅ GET LOGGED IN USER
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    // ✅ SALE-AWARE ITEMS
+    const items = cart.map(item => {
+      const finalPrice =
+        item.is_on_sale && item.sale_price
+          ? item.sale_price
+          : item.price
+
+      return {
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: finalPrice,
+      }
+    })
+
     const { error } = await supabase.from('orders').insert([
       {
-        full_name: form.full_name,
-        phone: form.phone,
-        address: form.address,
-        instructions: form.instructions,
-        payment_method: form.payment_method,
-        items: cart,
+        ...form,
+        user_id: user?.id || null, // ⭐ IMPORTANT FOR POINTS
+        items,
         subtotal,
-        total: subtotal,
+        discount,
+        total,
+        promo_code: promo?.code || null,
         status: 'pending',
       },
     ])
 
-    setLoading(false)
-
-    if (!error) {
-      clearCart()
-      router.push('/checkout-success')
-    } else {
-      alert('Something went wrong')
+    if (error) {
+      alert(error.message)
+      setLoading(false)
+      return
     }
+
+    // ✅ CLEAR CART
+    clearCart()
+
+    router.push('/success')
   }
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-2xl mx-auto px-4 py-10">
 
-      <h1 className="text-3xl font-playfair mb-6">Checkout</h1>
+      <h1 className="text-2xl font-semibold mb-6">Checkout</h1>
 
+      {/* FORM */}
       <div className="bg-white p-6 rounded-xl shadow space-y-4">
 
         <input
-          placeholder="Full Name"
+          placeholder="Full Name *"
           value={form.full_name}
           onChange={(e) => handleChange('full_name', e.target.value)}
           className="w-full border p-3 rounded-xl"
         />
 
         <input
-          placeholder="Phone Number"
+          placeholder="Phone *"
           value={form.phone}
           onChange={(e) => handleChange('phone', e.target.value)}
           className="w-full border p-3 rounded-xl"
         />
 
         <input
-          placeholder="Full Address"
+          placeholder="Address *"
           value={form.address}
           onChange={(e) => handleChange('address', e.target.value)}
           className="w-full border p-3 rounded-xl"
         />
 
         <textarea
-          placeholder="Delivery Instructions (optional)"
+          placeholder="Instructions (optional)"
           value={form.instructions}
           onChange={(e) => handleChange('instructions', e.target.value)}
           className="w-full border p-3 rounded-xl"
         />
 
-        {/* PAYMENT */}
-        <div>
-          <p className="font-semibold mb-2">Payment Method</p>
-
-          <div className="flex gap-4">
-            <button
-              onClick={() => handleChange('payment_method', 'cash')}
-              className={`flex-1 border p-3 rounded-xl ${
-                form.payment_method === 'cash'
-                  ? 'border-[#C6A96B]'
-                  : ''
-              }`}
-            >
-              Cash on Delivery
-            </button>
-
-            <button
-              onClick={() => handleChange('payment_method', 'card')}
-              className={`flex-1 border p-3 rounded-xl ${
-                form.payment_method === 'card'
-                  ? 'border-[#C6A96B]'
-                  : ''
-              }`}
-            >
-              Pay with Card
-            </button>
-          </div>
-        </div>
-
-        <button
-          onClick={handleCheckout}
-          disabled={loading}
-          className="w-full bg-[#C6A96B] text-white py-3 rounded-xl"
+        <select
+          value={form.payment_method}
+          onChange={(e) => handleChange('payment_method', e.target.value)}
+          className="w-full border p-3 rounded-xl"
         >
-          {loading ? 'Processing...' : 'Place Order'}
-        </button>
+          <option value="cash">Cash on Delivery</option>
+          <option value="card">Card (later)</option>
+        </select>
 
       </div>
 
-    </main>
+      {/* SUMMARY */}
+      <div className="mt-6 bg-white p-6 rounded-xl shadow">
+        <h2 className="font-semibold mb-3">Order Summary</h2>
+
+        {cart.map((item, i) => {
+          const price =
+            item.is_on_sale && item.sale_price
+              ? item.sale_price
+              : item.price
+
+          return (
+            <div key={i} className="flex justify-between text-sm mb-1">
+              <span>{item.name} × {item.quantity}</span>
+              <span>€{(item.quantity * price).toFixed(2)}</span>
+            </div>
+          )
+        })}
+
+        <div className="mt-4 border-t pt-3 text-sm flex justify-between">
+          <span>Subtotal</span>
+          <span>€{subtotal.toFixed(2)}</span>
+        </div>
+
+        {promo && (
+          <div className="flex justify-between text-green-600 text-sm">
+            <span>Discount ({promo.code})</span>
+            <span>-€{discount.toFixed(2)}</span>
+          </div>
+        )}
+
+        <div className="mt-2 font-semibold flex justify-between">
+          <span>Total</span>
+          <span className="text-[#C6A96B]">
+            €{total.toFixed(2)}
+          </span>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading || cart.length === 0}
+          className={`mt-4 w-full py-3 rounded-xl ${
+            cart.length === 0
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-[#C6A96B] text-white'
+          }`}
+        >
+          {loading ? 'Placing Order...' : 'Place Order'}
+        </button>
+      </div>
+
+    </div>
   )
 }
