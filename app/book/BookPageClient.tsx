@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { Suspense } from "react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,32 +68,24 @@ export default function BookingPage() {
     fetchServices()
   }, [selectedServiceId])
 
-  // ✅ FETCH BOOKED TIMES (FIXED)
+  // FETCH BOOKED TIMES
   useEffect(() => {
     if (!date || !location) return
 
     const fetchBooked = async () => {
-      const formattedDate = new Date(date)
-        .toISOString()
-        .split('T')[0]
+      const formattedDate = new Date(date).toISOString().split('T')[0]
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('appointments')
         .select('appointment_time')
         .eq('appointment_date', formattedDate)
         .eq('location', location)
-        .eq('status', 'upcoming') // ✅ ONLY ACTIVE BOOKINGS
+        .eq('status', 'upcoming')
 
-      console.log('DATE:', formattedDate)
-      console.log('LOCATION:', location)
-      console.log('FETCH RESULT:', data)
-
-      if (!error && data) {
+      if (data) {
         const formatted = data.map(a =>
           a.appointment_time.substring(0, 5)
         )
-
-        console.log('FORMATTED TIMES:', formatted)
 
         setBookedTimes(formatted)
       }
@@ -111,6 +102,11 @@ export default function BookingPage() {
 
     setLoading(true)
 
+    // GET USER
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     const { error } = await supabase.from('appointments').insert([
       {
         service: selectedService.name,
@@ -118,27 +114,55 @@ export default function BookingPage() {
         appointment_date: new Date(date).toISOString().split('T')[0],
         appointment_time: time,
         client_name: name,
-        phone: phone,
+        phone,
         email: email || null,
+        user_id: user?.id || null,
+        created_by: user?.id || null,
         status: 'upcoming',
         archived: false,
         source: 'website',
       },
     ])
 
+    if (error) {
+      setLoading(false)
+      alert('Error booking')
+      return
+    }
+
+    // ✅ SEND EMAIL (ONLY IF EMAIL EXISTS)
+    if (email) {
+      try {
+        await fetch('/api/send-booking-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            name,
+            service: selectedService.name,
+            date,
+            time,
+            location,
+          }),
+        })
+      } catch (e) {
+        console.log('Email failed (non-blocking)')
+      }
+    }
+
     setLoading(false)
 
-    if (!error) {
-      router.push('/book/success')
-    } else {
-      alert('Error booking')
-    }
+    // ✅ REDIRECT WITH DATA
+    router.push(
+      `/book/success?service=${encodeURIComponent(selectedService.name)}&date=${date}&time=${time}&location=${location}&name=${encodeURIComponent(name)}`
+    )
   }
 
   return (
     <main className="w-full px-4 py-10 max-w-3xl mx-auto">
 
-      {/* STEP INDICATOR */}
       <div className="flex justify-between mb-8 text-sm">
         <span className={step === 1 ? 'font-bold' : ''}>Service</span>
         <span className={step === 2 ? 'font-bold' : ''}>Location</span>
@@ -146,7 +170,6 @@ export default function BookingPage() {
         <span className={step === 4 ? 'font-bold' : ''}>Info</span>
       </div>
 
-      {/* STEP 1 */}
       {step === 1 && (
         <div>
           <h2 className="mb-4 font-semibold">Select Service</h2>
@@ -170,7 +193,6 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* STEP 2 */}
       {step === 2 && (
         <div>
           <h2 className="mb-4 font-semibold">Select Location</h2>
@@ -193,7 +215,6 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* STEP 3 */}
       {step === 3 && (
         <div>
           <h2 className="mb-4 font-semibold">Select Date & Time</h2>
@@ -243,7 +264,6 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* STEP 4 */}
       {step === 4 && (
         <div>
           <h2 className="mb-4 font-semibold">Your Info</h2>

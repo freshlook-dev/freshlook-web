@@ -22,19 +22,28 @@ export async function POST(req: Request) {
       )
     }
 
-    // ✅ TRANSPORTER
+    // ✅ DEBUG LOG
+    console.log('Sending email to:', email)
+
+    // ✅ FIX: HANDLE PORT PROPERLY
+    const port = Number(process.env.EMAIL_PORT)
+
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT),
-      secure: true,
+      port,
+      secure: port === 465, // ✅ FIXED
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     })
 
+    // ✅ VERIFY CONNECTION (IMPORTANT FOR DEBUG)
+    await transporter.verify()
+    console.log('SMTP connection verified')
+
     // ✅ SEND EMAIL
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"Fresh Look Aesthetics" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Your Appointment Confirmation',
@@ -75,19 +84,14 @@ export async function POST(req: Request) {
                         Your appointment has been successfully booked.
                       </p>
 
-                      <!-- DETAILS -->
                       <div style="background:#fafafa; padding:20px; border-radius:12px; margin-bottom:20px;">
-
                         <p><b>Service:</b> ${service || '-'}</p>
                         <p><b>Date:</b> ${date || '-'}</p>
                         <p><b>Time:</b> ${time || '-'}</p>
                         <p><b>Location:</b> ${location || '-'}</p>
-
                       </div>
 
-                      <p>
-                        We look forward to welcoming you ✨
-                      </p>
+                      <p>We look forward to welcoming you ✨</p>
 
                       <p style="margin-top:30px; font-size:14px; color:#777;">
                         Fresh Look Aesthetics<br/>
@@ -113,6 +117,8 @@ export async function POST(req: Request) {
         </div>
       `,
     })
+
+    console.log('Email sent:', info.messageId)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

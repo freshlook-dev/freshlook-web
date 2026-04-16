@@ -67,7 +67,6 @@ export default function ProfilePage() {
         {/* USER INFO */}
         <div className="relative bg-white/80 backdrop-blur-xl border rounded-3xl p-6 shadow-xl space-y-2">
 
-          {/* ✅ SETTINGS BUTTON */}
           <button
             onClick={() => router.push('/settings')}
             className="absolute top-4 right-4 text-sm text-gray-600 hover:text-black flex items-center gap-1"
@@ -97,6 +96,27 @@ export default function ProfilePage() {
           >
             Use Points
           </button>
+        </div>
+
+        {/* NEW CTA SECTION */}
+        <div className="bg-white/80 border rounded-3xl p-6 shadow-xl space-y-4">
+
+          <button
+            onClick={() => router.push('/profile/orders')}
+            className="w-full flex justify-between items-center p-4 rounded-xl border hover:bg-gray-50 transition"
+          >
+            <span className="font-medium">Purchase History</span>
+            <span className="text-gray-400">→</span>
+          </button>
+
+          <button
+            onClick={() => router.push('/profile/treatments')}
+            className="w-full flex justify-between items-center p-4 rounded-xl border hover:bg-gray-50 transition"
+          >
+            <span className="font-medium">Treatment History</span>
+            <span className="text-gray-400">→</span>
+          </button>
+
         </div>
 
         {/* LOGOUT */}
