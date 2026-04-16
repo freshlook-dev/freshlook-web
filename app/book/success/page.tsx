@@ -1,16 +1,10 @@
-"use client";
+import { Suspense } from "react";
+import SuccessClient from "./SuccessClient";
 
-import { useSearchParams } from "next/navigation";
-
-export default function SuccessClient() {
-  const searchParams = useSearchParams();
-
-  const name = searchParams.get("name");
-
+export default function Page() {
   return (
-    <div>
-      <h1>Booking Confirmed</h1>
-      <p>Thank you {name}</p>
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessClient />
+    </Suspense>
   );
 }

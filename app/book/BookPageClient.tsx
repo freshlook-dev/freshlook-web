@@ -129,7 +129,7 @@ export default function BookingPage() {
     setLoading(false)
 
     if (!error) {
-      router.push('/booking-success')
+      router.push('/book/success')
     } else {
       alert('Error booking')
     }

@@ -1,7 +1,6 @@
-'use client'
+"use client";
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Suspense } from "react";
 
 export default function BookingSuccessPage() {
   const params = useSearchParams()
@@ -18,20 +17,16 @@ export default function BookingSuccessPage() {
 
       <div className="w-full max-w-md bg-white/80 backdrop-blur-xl border border-neutral-200 rounded-3xl shadow-xl p-8 space-y-6 text-center">
 
-        {/* SUCCESS ICON */}
         <div className="text-5xl">✅</div>
 
-        {/* TITLE */}
         <h1 className="text-2xl font-semibold text-[#C6A96B]">
           Booking Confirmed
         </h1>
 
-        {/* DESCRIPTION */}
         <p className="text-gray-600 text-sm">
           Thank you {name || ''}, your appointment has been successfully booked.
         </p>
 
-        {/* DETAILS */}
         <div className="bg-neutral-50 rounded-xl p-4 text-sm space-y-2 border">
           <p><b>Service:</b> {service}</p>
           <p><b>Date:</b> {date}</p>
@@ -39,12 +34,10 @@ export default function BookingSuccessPage() {
           <p><b>Location:</b> {location}</p>
         </div>
 
-        {/* INFO */}
         <p className="text-xs text-gray-400">
           A confirmation email has been sent (if provided).
         </p>
 
-        {/* BUTTONS */}
         <div className="flex flex-col gap-3 pt-2">
 
           <button
