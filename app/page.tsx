@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useCart } from '@/context/CartContext'
 
 type Service = {
   id: string
@@ -33,7 +35,6 @@ type Slide = {
   image_mobile: string
 }
 
-// ✅ COUNTER COMPONENT
 function Counter({ value }: { value: number }) {
   const count = useMotionValue(0)
   const rounded = useTransform(count, (latest) => Math.floor(latest))
@@ -41,11 +42,7 @@ function Counter({ value }: { value: number }) {
 
   useEffect(() => {
     const controls = animate(count, value, { duration: 2 })
-
-    const unsubscribe = rounded.on('change', (v) => {
-      setDisplay(v)
-    })
-
+    const unsubscribe = rounded.on('change', (v) => setDisplay(v))
     return () => {
       controls.stop()
       unsubscribe()
@@ -57,11 +54,20 @@ function Counter({ value }: { value: number }) {
 
 export default function HomePage() {
   const router = useRouter()
+  const { addToCart } = useCart()
 
   const [services, setServices] = useState<Service[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [slides, setSlides] = useState<Slide[]>([])
   const [current, setCurrent] = useState(0)
+
+  const [serviceIndex, setServiceIndex] = useState(0)
+  const [productIndex, setProductIndex] = useState(0)
+
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+
+  const visibleCount = 4
+  const step = 1
 
   useEffect(() => {
     fetchData()
@@ -77,9 +83,8 @@ export default function HomePage() {
   }, [slides])
 
   const fetchData = async () => {
-    const { data: s } = await supabase.from('services').select('*').limit(4)
-    const { data: p } = await supabase.from('products').select('*').limit(4)
-
+    const { data: s } = await supabase.from('services').select('*')
+    const { data: p } = await supabase.from('products').select('*')
     if (s) setServices(s)
     if (p) setProducts(p)
   }
@@ -99,35 +104,32 @@ export default function HomePage() {
   const currentSlide = slides[current]
 
   return (
-    <main className="bg-white">
+    <main className="bg-[#F7EEDF] text-[#1A1A1A]">
 
       {/* HERO */}
-      <section className="relative h-[85vh] flex items-center justify-center text-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center scale-105"
-          style={{
-            backgroundImage: `url(${currentSlide?.image_desktop || '/assets/product1.jpg'})`,
-          }}
+      <section className="relative h-[90vh] flex items-center justify-center text-center overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center scale-110"
+          style={{ backgroundImage: `url(${currentSlide?.image_desktop || '/assets/product1.jpg'})` }}
         />
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/60" />
 
         <motion.div
           key={current}
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 text-white max-w-2xl px-4"
+          className="relative z-10 text-white max-w-2xl px-6"
         >
-          <h1 className="text-4xl sm:text-5xl font-playfair mb-4">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-playfair mb-6">
             {currentSlide?.title || 'Elevate Your Beauty Experience'}
           </h1>
 
-          <p className="mb-6 text-gray-200">
+          <p className="mb-8 text-gray-200">
             {currentSlide?.subtitle || 'Premium treatments tailored to perfection'}
           </p>
 
           <button
             onClick={() => router.push(currentSlide?.cta_link || '/book')}
-            className="bg-[#C6A96B] px-6 py-3 rounded-xl"
+            className="bg-[#C6A96B] px-8 py-3 rounded-full shadow-lg hover:scale-105"
           >
             {currentSlide?.cta_text || 'Book Now'}
           </button>
@@ -135,70 +137,34 @@ export default function HomePage() {
       </section>
 
       {/* SERVICES */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-3xl font-playfair text-center mb-12">
-          Signature Treatments
+      <section className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
+        <h2 className="text-3xl sm:text-4xl font-playfair text-center mb-12">
+          Treatments
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-          {services.map((s, i) => (
-            <motion.div
-              key={s.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-white rounded-2xl shadow-md overflow-hidden relative"
-            >
-              {s.is_on_sale && (
-                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                  SALE
-                </div>
-              )}
-
-              <div
-                className="h-36 bg-cover bg-center"
-                style={{ backgroundImage: `url(${s.image_url})` }}
-              />
-
-              <div className="p-4">
+        <div className="flex sm:grid sm:grid-cols-4 gap-6 overflow-x-auto snap-x snap-mandatory">
+          {services.slice(serviceIndex, serviceIndex + visibleCount).map((s) => (
+            <div key={s.id} className="snap-center min-w-[65%] sm:min-w-0 bg-white rounded-3xl shadow-lg flex flex-col">
+              <div className="h-40 bg-cover bg-center" style={{ backgroundImage: `url(${s.image_url})` }} />
+              <div className="p-5 flex flex-col flex-1 justify-between">
                 <h3 className="text-sm font-semibold">{s.name}</h3>
-
-                <div className="mt-2">
-                  {s.is_on_sale && s.sale_price ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#C6A96B] font-semibold">
-                        €{s.sale_price}
-                      </span>
-                      <span className="text-red-500 line-through text-sm">
-                        €{s.price}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="font-semibold">€{s.price}</span>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => router.push('/book')}
-                  className="mt-3 w-full bg-[#C6A96B] text-white py-2 rounded-xl text-xs"
-                >
+                <button onClick={() => router.push('/book')} className="mt-4 w-full bg-[#C6A96B] text-white py-3 rounded-full">
                   Book Now
                 </button>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* TRUST NUMBERS */}
-      <section className="bg-[#f9f7f3] py-16 text-center">
+      {/* STATS */}
+      <section className="py-20 text-center">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-5xl mx-auto">
-
           {[
-            { label: 'Happy Clients', value: 1200 },
-            { label: 'Treatments Done', value: 3500 },
-            { label: 'Years Experience', value: 8 },
-            { label: '5★ Reviews', value: 950 },
+            { label: 'Happy Clients', value: 5000 },
+            { label: 'Treatments Done', value: 12000 },
+            { label: 'Years Experience', value: 5 },
+            { label: '5★ Reviews', value: 500 },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -206,67 +172,81 @@ export default function HomePage() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.2 }}
             >
-              <h3 className="text-3xl font-bold text-[#C6A96B]">
+              <h3 className="text-4xl font-bold text-[#C6A96B]">
                 <Counter value={item.value} />
               </h3>
-
-              <p className="text-sm text-gray-600 mt-2">{item.label}</p>
+              <p className="text-sm mt-2 text-gray-600">{item.label}</p>
             </motion.div>
           ))}
-
         </div>
       </section>
 
       {/* PRODUCTS */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <h2 className="text-3xl font-playfair text-center mb-12">
-          Skincare Essentials
+      <section className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
+        <h2 className="text-3xl sm:text-4xl font-playfair text-center mb-12">
+          Skin Care Products Shop
         </h2>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-          {products.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl shadow-md overflow-hidden relative">
-
-              {p.is_on_sale && (
-                <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                  SALE
-                </div>
-              )}
-
-              <div
-                className="h-36 bg-cover bg-center"
+        <div className="flex sm:grid sm:grid-cols-4 gap-6 overflow-x-auto snap-x snap-mandatory">
+          {products.slice(productIndex, productIndex + visibleCount).map((p) => (
+            <motion.div key={p.id} whileHover={{ y: -6 }}
+              className="snap-center min-w-[65%] sm:min-w-0 bg-white rounded-3xl shadow-lg flex flex-col"
+            >
+              <div onClick={() => setSelectedProduct(p)}
+                className="h-40 bg-cover bg-center cursor-pointer"
                 style={{ backgroundImage: `url(${p.image_url})` }}
               />
 
-              <div className="p-4">
+              <div className="p-5 flex flex-col flex-1 justify-between">
                 <h3 className="text-sm font-semibold">{p.name}</h3>
 
-                <div className="mt-2 flex items-center gap-2">
-                  {p.is_on_sale && p.sale_price ? (
-                    <>
-                      <span className="text-[#C6A96B] font-semibold">
-                        €{p.sale_price}
-                      </span>
-                      <span className="text-red-500 line-through text-sm">
-                        €{p.price}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="font-semibold">€{p.price}</span>
-                  )}
-                </div>
-
                 <button
-                  onClick={() => router.push('/shop')}
-                  className="mt-3 w-full bg-[#C6A96B] text-white py-2 rounded-xl text-xs"
+                  onClick={() =>
+                    addToCart({
+                      ...p,
+                      image: p.image_url,
+                    })
+                  }
+                  className="mt-4 w-full bg-[#C6A96B] text-white py-3 rounded-full"
                 >
-                  Shop Now
+                  Add to Cart
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
+
+      {/* MODAL */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden relative">
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-3 right-3">
+              <X />
+            </button>
+
+            <div className="h-60 bg-cover bg-center"
+              style={{ backgroundImage: `url(${selectedProduct.image_url})` }}
+            />
+
+            <div className="p-5">
+              <h2 className="text-lg font-semibold">{selectedProduct.name}</h2>
+
+              <button
+                onClick={() =>
+                  addToCart({
+                    ...selectedProduct,
+                    image: selectedProduct.image_url,
+                  })
+                }
+                className="mt-6 w-full bg-[#C6A96B] text-white py-3 rounded-full"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </main>
   )

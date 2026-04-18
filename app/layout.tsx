@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${inter.variable} ${playfair.variable} bg-white text-neutral-900`}
+        className={`${inter.variable} ${playfair.variable} bg-[#F7EEDF] text-neutral-900`}
       >
         <CartProvider>
           <Header />

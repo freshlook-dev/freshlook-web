@@ -93,13 +93,13 @@ export default function PointsPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 bg-neutral-100">
+    <div className="min-h-screen p-6 bg-[#F7EEDF]">
       <div className="max-w-xl mx-auto space-y-6">
 
-        {/* ✅ BACK BUTTON */}
+        {/* BACK */}
         <button
           onClick={() => router.push('/profile')}
-          className="text-sm flex items-center gap-2 text-gray-600 hover:text-black"
+          className="text-sm flex items-center gap-2 text-gray-500 hover:text-black"
         >
           ← Back to profile
         </button>
@@ -107,14 +107,20 @@ export default function PointsPage() {
         <h1 className="text-2xl font-semibold">Your Points</h1>
 
         {/* BALANCE */}
-        <div className="bg-white p-6 rounded-2xl shadow text-center">
-          <p className="text-gray-500">Available Points</p>
-          <h2 className="text-4xl font-bold">{points}</h2>
-          <p className="text-gray-500 mt-2">€{totalEuro}</p>
+        <div className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl shadow-md text-center">
+          <p className="text-gray-500 text-sm">Available Points</p>
+
+          <h2 className="text-4xl font-bold text-[#C6A96B] mt-1">
+            {points}
+          </h2>
+
+          <p className="text-gray-500 mt-2 text-sm">
+            €{totalEuro}
+          </p>
         </div>
 
         {/* REDEEM */}
-        <div className="bg-white p-6 rounded-2xl shadow space-y-4">
+        <div className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl shadow-md space-y-4">
           <h3 className="font-semibold">Use Points</h3>
 
           <input
@@ -122,25 +128,24 @@ export default function PointsPage() {
             placeholder="Enter points"
             value={inputPoints}
             onChange={(e) => setInputPoints(Number(e.target.value))}
-            className="w-full border p-3 rounded-xl"
+            className="w-full border border-[#e5dccb] p-3 rounded-xl bg-white"
           />
 
-          <p className="text-gray-500">= €{euroValue}</p>
+          <p className="text-gray-500 text-sm">= €{euroValue}</p>
 
           <button
             onClick={handleGenerateQR}
             disabled={loading}
-            className="w-full bg-[#C6A96B] text-white py-3 rounded-xl"
+            className="w-full bg-[#C6A96B] hover:bg-[#b8965a] transition text-white py-3 rounded-full shadow-md"
           >
             {loading ? 'Generating...' : 'Generate QR Code'}
           </button>
         </div>
 
-        {/* ✅ QR WITH CLOSE BUTTON */}
+        {/* QR */}
         {qrValue && (
-          <div className="bg-white p-6 rounded-2xl flex flex-col items-center shadow border-2 border-[#C6A96B] relative">
+          <div className="bg-[#F7EEDF] border-2 border-[#C6A96B] p-6 rounded-3xl flex flex-col items-center shadow-md relative">
 
-            {/* CLOSE X */}
             <button
               onClick={() => setQrValue(null)}
               className="absolute top-3 right-3 text-gray-500 hover:text-black text-lg"
@@ -149,12 +154,15 @@ export default function PointsPage() {
             </button>
 
             <QRCode value={qrValue} size={200} />
-            <p className="mt-3 text-sm font-medium">Active QR Code</p>
+
+            <p className="mt-4 text-sm font-medium text-center">
+              Show this QR to staff to redeem
+            </p>
           </div>
         )}
 
         {/* HISTORY */}
-        <div className="bg-white p-6 rounded-2xl shadow">
+        <div className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl shadow-md">
           <h3 className="font-semibold mb-4">History</h3>
 
           {history.length === 0 && (
@@ -165,23 +173,25 @@ export default function PointsPage() {
             <div
               key={h.id}
               onClick={() => handleSelectHistory(h)}
-              className={`flex justify-between text-sm border-b py-3 cursor-pointer
-                ${h.status === 'pending' ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'}
+              className={`flex justify-between items-center text-sm border-b border-[#e5dccb] py-3 transition
+                ${h.status === 'pending'
+                  ? 'cursor-pointer hover:bg-white'
+                  : 'opacity-50 cursor-not-allowed'}
               `}
             >
               <div>
-                <p>{h.points} pts</p>
+                <p className="font-medium">{h.points} pts</p>
               </div>
 
               <span
-                className={`text-xs ${
-                  h.status === 'pending'
-                    ? 'text-yellow-600'
-                    : 'text-green-600'
-                }`}
-              >
-                {h.status === 'pending' ? 'active' : 'used'}
-              </span>
+  className={`text-xs px-3 py-1 rounded-full ${
+    h.status === 'pending'
+      ? 'bg-green-100 text-green-700'
+      : 'bg-red-100 text-red-600'
+  }`}
+>
+  {h.status === 'pending' ? 'active' : 'used'}
+</span>
             </div>
           ))}
         </div>

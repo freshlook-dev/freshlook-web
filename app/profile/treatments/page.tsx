@@ -36,12 +36,11 @@ export default function TreatmentHistoryPage() {
       return
     }
 
-    // ✅ ONLY COMPLETED VISITS
     const { data, error } = await supabase
       .from('appointments')
       .select('*')
       .eq('user_id', user.id)
-      .in('status', ['arrived', 'completed']) // 🔥 important
+      .in('status', ['arrived', 'completed'])
       .order('appointment_date', { ascending: false })
 
     if (!error && data) {
@@ -66,7 +65,7 @@ export default function TreatmentHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-6">
+    <div className="min-h-screen bg-[#F7EEDF] p-6">
       <div className="max-w-xl mx-auto space-y-6">
 
         {/* HEADER */}
@@ -88,7 +87,7 @@ export default function TreatmentHistoryPage() {
 
         {/* EMPTY */}
         {!loading && appointments.length === 0 && (
-          <div className="bg-white p-6 rounded-2xl text-center text-gray-400 shadow">
+          <div className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl text-center text-gray-400 shadow-md">
             No treatments yet
           </div>
         )}
@@ -98,7 +97,7 @@ export default function TreatmentHistoryPage() {
           {appointments.map((a) => (
             <div
               key={a.id}
-              className="bg-white p-5 rounded-2xl shadow hover:shadow-md transition"
+              className="bg-[#F7EEDF] border border-[#e5dccb] p-5 rounded-3xl shadow-md hover:shadow-lg transition"
             >
               {/* TOP */}
               <div className="flex justify-between items-center mb-2">
@@ -110,18 +109,18 @@ export default function TreatmentHistoryPage() {
               </div>
 
               {/* LOCATION */}
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 📍 {a.location}
               </p>
 
               {/* DATE */}
-              <p className="text-sm text-gray-500">
-                📅 {formatDate(a.appointment_date)} • {a.appointment_time?.slice(0,5)}
+              <p className="text-sm text-gray-600">
+                📅 {formatDate(a.appointment_date)} • {a.appointment_time?.slice(0, 5)}
               </p>
 
               {/* PRICE */}
               {a.total_amount && (
-                <p className="text-sm text-[#C6A96B] font-semibold mt-1">
+                <p className="text-sm text-[#C6A96B] font-semibold mt-2">
                   €{a.total_amount}
                 </p>
               )}

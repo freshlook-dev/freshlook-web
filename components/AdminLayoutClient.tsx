@@ -12,13 +12,13 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   const navItems = [
     { name: 'Dashboard', href: '/admin' },
-    { name: 'Services', href: '/admin/services' },
-    { name: 'Products', href: '/admin/products' },
-    { name: 'Promos', href: '/admin/promos' },
+    { name: 'Appointments', href: '/admin/bookings' },
     { name: 'Orders', href: '/admin/orders' },
-    { name: 'Messages', href: '/admin/messages' },
-    { name: 'Content', href: '/admin/content' },
-    { name: 'Appointments', href: '/admin/appointments' },
+    { name: 'Edit Hero', href: '/admin/content' },
+    { name: 'Edit Services', href: '/admin/services' },
+    { name: 'Edit Products', href: '/admin/products' },
+    { name: 'Edit Promos', href: '/admin/promos' },
+    
   ]
 
   return (

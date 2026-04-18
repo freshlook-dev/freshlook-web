@@ -54,19 +54,19 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-6">
+    <div className="min-h-screen bg-[#F7EEDF] p-6">
       <div className="max-w-2xl mx-auto space-y-6">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.push('/profile')}
-            className="text-sm text-gray-600"
+            className="text-sm text-gray-500 hover:text-black"
           >
             ← Back
           </button>
 
-          <h1 className="text-xl font-semibold">
+          <h1 className="text-xl sm:text-2xl font-semibold">
             Purchase History
           </h1>
 
@@ -75,14 +75,14 @@ export default function OrdersPage() {
 
         {/* LOADING */}
         {loading && (
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 text-sm text-center">
             Loading orders...
           </p>
         )}
 
         {/* EMPTY */}
         {!loading && orders.length === 0 && (
-          <div className="bg-white p-6 rounded-2xl text-center text-gray-500">
+          <div className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl text-center text-gray-400 shadow-md">
             No orders yet
           </div>
         )}
@@ -94,7 +94,7 @@ export default function OrdersPage() {
           return (
             <div
               key={order.id}
-              className="bg-white rounded-2xl shadow p-5 space-y-3"
+              className="bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl shadow-md p-5 space-y-3 hover:shadow-lg transition"
             >
               {/* HEADER */}
               <div
@@ -121,7 +121,7 @@ export default function OrdersPage() {
                     {order.status}
                   </span>
 
-                  <span className="text-gray-400">
+                  <span className="text-gray-400 text-lg">
                     {isOpen ? '−' : '+'}
                   </span>
                 </div>
@@ -129,11 +129,11 @@ export default function OrdersPage() {
 
               {/* ITEMS */}
               {isOpen && (
-                <div className="border-t pt-3 space-y-2 text-sm">
+                <div className="border-t border-[#e5dccb] pt-3 space-y-2 text-sm">
                   {order.items?.map((item, i) => (
                     <div
                       key={i}
-                      className="flex justify-between"
+                      className="flex justify-between text-gray-700"
                     >
                       <span>
                         {item.name} × {item.quantity}
@@ -147,7 +147,7 @@ export default function OrdersPage() {
               )}
 
               {/* TOTAL */}
-              <div className="text-right font-semibold text-[#C6A96B]">
+              <div className="text-right font-semibold text-[#C6A96B] text-lg">
                 €{order.total?.toFixed(2)}
               </div>
             </div>

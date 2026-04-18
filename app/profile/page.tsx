@@ -9,6 +9,7 @@ export default function ProfilePage() {
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [avatar, setAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -29,7 +30,15 @@ export default function ProfilePage() {
         .eq('id', user.id)
         .single()
 
-      if (data) setProfile(data)
+      if (data) {
+        setProfile(data)
+
+        // ✅ FIX: BUILD IMAGE URL FROM FILENAME
+        if (data.avatar_url) {
+          const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${data.avatar_url}`
+          setAvatar(url)
+        }
+      }
     }
 
     fetchUser()
@@ -52,26 +61,32 @@ export default function ProfilePage() {
   const euro = (points * 0.1).toFixed(2)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-neutral-100 to-neutral-200 p-6">
+    <div className="min-h-screen bg-[#F7EEDF] p-6">
       <div className="max-w-xl mx-auto space-y-6">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">My Profile</h1>
 
-          <div className="w-12 h-12 rounded-full bg-[#C6A96B] text-white flex items-center justify-center font-semibold text-lg">
-            {initials}
-          </div>
+          {/* ✅ AVATAR FIXED */}
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200 shadow-md">
+  {avatar && (
+    <img
+      src={`${avatar}?t=${Date.now()}`}
+      className="w-full h-full object-cover"
+    />
+  )}
+</div>
         </div>
 
         {/* USER INFO */}
-        <div className="relative bg-white/80 backdrop-blur-xl border rounded-3xl p-6 shadow-xl space-y-2">
+        <div className="relative bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl p-6 shadow-md space-y-2">
 
           <button
             onClick={() => router.push('/settings')}
-            className="absolute top-4 right-4 text-sm text-gray-600 hover:text-black flex items-center gap-1"
+            className="absolute top-4 right-4 text-sm text-gray-600 hover:text-black"
           >
-            Go to settings →
+            Settings →
           </button>
 
           <p className="text-sm text-gray-500">Full Name</p>
@@ -84,26 +99,26 @@ export default function ProfilePage() {
           <p className="font-medium">{profile?.phone || '—'}</p>
         </div>
 
-        {/* POINTS CARD */}
-        <div className="bg-white/80 border rounded-3xl p-6 shadow-xl text-center">
+        {/* POINTS */}
+        <div className="bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl p-6 shadow-md text-center">
           <p className="text-gray-500">Fresh Points</p>
-          <h2 className="text-4xl font-bold">{points}</h2>
+          <h2 className="text-4xl font-bold text-[#C6A96B]">{points}</h2>
           <p className="text-gray-500 mt-2">Value: €{euro}</p>
 
           <button
             onClick={() => router.push('/profile/points')}
-            className="mt-4 w-full bg-[#C6A96B] text-white py-3 rounded-xl"
+            className="mt-4 w-full bg-[#C6A96B] text-white py-3 rounded-xl shadow"
           >
             Use Points
           </button>
         </div>
 
-        {/* NEW CTA SECTION */}
-        <div className="bg-white/80 border rounded-3xl p-6 shadow-xl space-y-4">
+        {/* LINKS */}
+        <div className="bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl p-6 shadow-md space-y-4">
 
           <button
             onClick={() => router.push('/profile/orders')}
-            className="w-full flex justify-between items-center p-4 rounded-xl border hover:bg-gray-50 transition"
+            className="w-full flex justify-between items-center p-4 rounded-xl border hover:bg-white transition"
           >
             <span className="font-medium">Purchase History</span>
             <span className="text-gray-400">→</span>
@@ -111,7 +126,7 @@ export default function ProfilePage() {
 
           <button
             onClick={() => router.push('/profile/treatments')}
-            className="w-full flex justify-between items-center p-4 rounded-xl border hover:bg-gray-50 transition"
+            className="w-full flex justify-between items-center p-4 rounded-xl border hover:bg-white transition"
           >
             <span className="font-medium">Treatment History</span>
             <span className="text-gray-400">→</span>
