@@ -130,10 +130,18 @@ export default function HomePage() {
           </p>
 
           <button
-            onClick={() => router.push(currentSlide?.cta_link || '/book')}
-            className="bg-[#C6A96B] px-8 py-3 rounded-full shadow-lg hover:scale-105"
-          >
-            {currentSlide?.cta_text || 'Book Now'}
+           onClick={() => {
+  if (typeof window !== 'undefined' && (window as any).fbq) {
+    ;(window as any).fbq('track', 'InitiateCheckout', {
+      content_name: currentSlide?.cta_text || 'Book Now',
+    })
+  }
+
+  router.push(currentSlide?.cta_link || '/book')
+}}
+className="bg-[#C6A96B] px-8 py-3 rounded-full shadow-lg hover:scale-105"
+>
+{currentSlide?.cta_text || 'Book Now'}
           </button>
         </motion.div>
       </section>
@@ -182,10 +190,16 @@ export default function HomePage() {
                 </div>
 
                 <button
-                  onClick={() => router.push('/book')}
-                  className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
-                >
-                  Book Now
+                  onClick={() => {
+  if (typeof window !== 'undefined' && (window as any).fbq) {
+    ;(window as any).fbq('track', 'InitiateCheckout')
+  }
+
+  router.push('/book')
+}}
+className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
+>
+Book Now
                 </button>
               </div>
             </motion.div>
@@ -256,11 +270,22 @@ export default function HomePage() {
                 </div>
 
                 <button
-                  onClick={() =>
-                    addToCart({
-                      ...p,
-                      image: p.image_url,
-                    })
+                 onClick={() => {
+  addToCart({
+    ...p,
+    image: p.image_url,
+  })
+
+  if (typeof window !== 'undefined' && (window as any).fbq) {
+    ;(window as any).fbq('track', 'AddToCart', {
+      content_name: p.name,
+      content_ids: [p.id],
+      content_type: 'product',
+      value: p.price,
+      currency: 'EUR',
+    })
+  }
+}
                   }
                   className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
                 >
@@ -289,15 +314,25 @@ export default function HomePage() {
               <h2 className="text-lg font-semibold">{selectedProduct.name}</h2>
 
               <button
-                onClick={() =>
-                  addToCart({
-                    ...selectedProduct,
-                    image: selectedProduct.image_url,
-                  })
-                }
-                className="mt-6 w-full bg-[#C6A96B] text-white py-3 rounded-full"
-              >
-                Add to Cart
+                onClick={() => {
+  addToCart({
+    ...selectedProduct,
+    image: selectedProduct.image_url,
+  })
+
+  if (typeof window !== 'undefined' && (window as any).fbq) {
+    ;(window as any).fbq('track', 'AddToCart', {
+      content_name: selectedProduct.name,
+      content_ids: [selectedProduct.id],
+      content_type: 'product',
+      value: selectedProduct.price,
+      currency: 'EUR',
+    })
+  }
+}}
+className="mt-6 w-full bg-[#C6A96B] text-white py-3 rounded-full"
+>
+Add to Cart
               </button>
             </div>
           </div>
