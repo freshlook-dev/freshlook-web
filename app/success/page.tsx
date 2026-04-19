@@ -3,27 +3,26 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 
-
-export default function SuccessPage() {
+export default function SuccessContent() {
   const router = useRouter()
   const params = useSearchParams()
 
   const totalAmount = Number(params.get('total') || 0)
 
- const hasTracked = useRef(false)
+  const hasTracked = useRef(false)
 
-useEffect(() => {
-  if (hasTracked.current) return
+  useEffect(() => {
+    if (hasTracked.current) return
 
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    ;(window as any).fbq('track', 'Purchase', {
-      value: totalAmount,
-      currency: 'EUR'
-    })
-  }
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      ;(window as any).fbq('track', 'Purchase', {
+        value: totalAmount,
+        currency: 'EUR',
+      })
+    }
 
-  hasTracked.current = true
-}, [totalAmount])
+    hasTracked.current = true
+  }, [totalAmount])
 
   return (
     <div className="text-center py-20">
