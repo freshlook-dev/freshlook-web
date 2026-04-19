@@ -51,18 +51,34 @@ export default function ShopPage() {
     return Math.round(((price - sale) / price) * 100)
   }
 
+  const getImageUrl = (url: string | null) => {
+  return url || ''
+}
+
   const handleAddToCart = (product: Product) => {
     const finalPrice =
       product.is_on_sale && product.sale_price
         ? product.sale_price
         : product.price
 
+    // ✅ Add to cart
     addToCart({
       id: product.id,
       name: product.name,
       price: finalPrice,
-      image: product.image_url || '/assets/product1.jpg',
+      image: getImageUrl(product.image_url),
     })
+
+   // ✅ Meta Pixel (UPGRADED)
+if (typeof window !== 'undefined' && (window as any).fbq) {
+  ;(window as any).fbq('track', 'AddToCart', {
+    content_name: product.name,
+    content_ids: [product.id],
+    content_type: 'product',
+    value: finalPrice,
+    currency: 'EUR'
+      })
+    }
   }
 
   return (
@@ -108,7 +124,7 @@ export default function ShopPage() {
                 <div
                   className="h-36 sm:h-44 bg-cover bg-center"
                   style={{
-                    backgroundImage: `url(${product.image_url || '/assets/product1.jpg'})`,
+                    backgroundImage: `url(${getImageUrl(product.image_url)})`,
                   }}
                 />
 

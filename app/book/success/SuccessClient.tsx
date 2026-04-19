@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 
 export default function BookingSuccessPage() {
   const params = useSearchParams();
@@ -13,6 +14,17 @@ export default function BookingSuccessPage() {
   const location = params.get('location') || '-';
   const name = params.get('name') || '';
 
+  // ✅ Meta Pixel Schedule Event (FIXED)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      ;(window as any).fbq('track', 'Schedule', {
+        content_name: 'Appointment Booking',
+        value: 1,
+        currency: 'EUR'
+      });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F7EEDF] px-4">
 
@@ -23,11 +35,9 @@ export default function BookingSuccessPage() {
         className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-[#e5dccb] p-8 text-center relative overflow-hidden"
       >
 
-        {/* glow */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-green-500/10 rounded-full blur-3xl" />
 
-        {/* ✅ GREEN CHECK ICON */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -45,7 +55,6 @@ export default function BookingSuccessPage() {
           Thank you <span className="font-medium">{name}</span>, your appointment has been successfully booked.
         </p>
 
-        {/* details */}
         <div className="bg-[#F7EEDF] border border-[#e5dccb] rounded-2xl p-5 text-sm space-y-3 mb-6">
 
           <div className="flex justify-between">

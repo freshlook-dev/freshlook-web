@@ -13,6 +13,25 @@ export default function ProductPage() {
   const [product, setProduct] = useState<any>(null)
   const [related, setRelated] = useState<any[]>([])
 
+  // ✅ ViewContent
+  useEffect(() => {
+    if (!product) return
+
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      ;(window as any).fbq('track', 'ViewContent', {
+        content_name: product.name,
+        content_ids: [product.id],
+        content_type: 'product',
+        value:
+          product.is_on_sale && product.sale_price
+            ? product.sale_price
+            : product.price,
+        currency: 'EUR'
+      })
+    }
+  }, [product])
+
+  // ✅ Fetch product
   useEffect(() => {
     const fetchProduct = async () => {
       const { data } = await supabase
@@ -44,7 +63,32 @@ export default function ProductPage() {
     ? Math.round(((product.price - product.sale_price) / product.price) * 100)
     : 0
 
-  const savings = isSale ? (product.price - product.sale_price).toFixed(2) : 0
+  const savings = isSale
+    ? (product.price - product.sale_price).toFixed(2)
+    : 0
+
+  const finalPrice =
+    product.is_on_sale && product.sale_price
+      ? product.sale_price
+      : product.price
+
+  const handleAddToCart = () => {
+    addToCart({
+      ...product,
+      image: product.image_url,
+    })
+
+    // ✅ Meta Pixel AddToCart
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      ;(window as any).fbq('track', 'AddToCart', {
+        content_name: product.name,
+        content_ids: [product.id],
+        content_type: 'product',
+        value: finalPrice,
+        currency: 'EUR'
+      })
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 pb-24">
@@ -113,12 +157,7 @@ export default function ProductPage() {
 
           {/* ADD TO CART */}
           <button
-            onClick={() =>
-              addToCart({
-                ...product,
-                image: product.image_url,
-              })
-            }
+            onClick={handleAddToCart}
             className="bg-[#C6A96B] text-white px-6 py-3 rounded-full"
           >
             Add to Cart
@@ -137,13 +176,12 @@ export default function ProductPage() {
             <div
               key={r.id}
               onClick={() => router.push(`/shop/${r.id}`)}
-              className="cursor-pointer"
+              className="cursor-pointer hover:opacity-80 transition"
             >
               <div
                 className="aspect-[4/3] bg-cover bg-center rounded-xl"
                 style={{ backgroundImage: `url(${r.image_url})` }}
               />
-
               <p className="text-sm mt-2">{r.name}</p>
             </div>
           ))}
@@ -151,37 +189,31 @@ export default function ProductPage() {
       </div>
 
       {/* STICKY MOBILE BAR */}
-     <div className="fixed bottom-0 left-0 w-full bg-white border-t p-4 flex justify-between items-center md:hidden z-50">
-  
-  <div className="flex items-center gap-2">
-    {product.is_on_sale && product.sale_price ? (
-      <>
-        <span className="font-semibold text-[#C6A96B]">
-          €{product.sale_price}
-        </span>
-        <span className="text-xs text-gray-400 line-through">
-          €{product.price}
-        </span>
-      </>
-    ) : (
-      <span className="font-semibold text-[#C6A96B]">
-        €{product.price}
-      </span>
-    )}
-  </div>
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t p-4 flex justify-between items-center md:hidden z-50">
+        <div className="flex items-center gap-2">
+          {isSale ? (
+            <>
+              <span className="font-semibold text-[#C6A96B]">
+                €{product.sale_price}
+              </span>
+              <span className="text-xs text-gray-400 line-through">
+                €{product.price}
+              </span>
+            </>
+          ) : (
+            <span className="font-semibold text-[#C6A96B]">
+              €{product.price}
+            </span>
+          )}
+        </div>
 
-  <button
-    onClick={() =>
-      addToCart({
-        ...product,
-        image: product.image_url,
-      })
-    }
-    className="bg-[#C6A96B] text-white px-6 py-2 rounded-full"
-  >
-    Add to Cart
-  </button>
-</div>
+        <button
+          onClick={handleAddToCart}
+          className="bg-[#C6A96B] text-white px-6 py-2 rounded-full"
+        >
+          Add to Cart
+        </button>
+      </div>
     </div>
   )
 }
