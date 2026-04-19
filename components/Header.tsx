@@ -144,8 +144,8 @@ export default function Header() {
       <header
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-white/90 backdrop-blur shadow-sm'
-            : 'bg-white/70 backdrop-blur'
+  ? 'bg-white shadow-sm'
+  : 'bg-white'
         }`}
       >
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">

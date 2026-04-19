@@ -79,120 +79,127 @@ export default function SignupPage() {
   }
 
   return (
-    <AuthCard
-      title="Create account"
-      subtitle="Join Fresh Look"
-    >
-      <div className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F7EEDF]">
 
-        {/* NAME */}
-        <div>
-          <label className="text-sm text-gray-500">Full Name</label>
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="w-full border p-3 rounded-xl mt-1"
-          />
-        </div>
+      <div className="w-full max-w-md">
 
-        {/* PHONE */}
-        <div>
-          <label className="text-sm text-gray-500">Phone</label>
-          <PhoneInput
-            country={'xk'}
-            value={phone}
-            onChange={(phone) => setPhone(phone)}
-            inputClass="!w-full !h-12 !rounded-xl !border !border-gray-300"
-            containerClass="w-full mt-1"
-            dropdownClass="!z-[9999]"
-          />
-        </div>
-
-        {/* EMAIL */}
-        <div>
-          <label className="text-sm text-gray-500">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border p-3 rounded-xl mt-1"
-          />
-        </div>
-
-        {/* PASSWORD */}
-        <div>
-          <label className="text-sm text-gray-500">Password</label>
-
-          <div className="relative mt-1">
-            <input
-              type={showPass ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border p-3 rounded-xl pr-12"
-            />
-
-            <button
-              onClick={() => setShowPass(!showPass)}
-              className="absolute right-3 top-3 text-sm text-gray-500"
-            >
-              {showPass ? 'Hide' : 'Show'}
-            </button>
-          </div>
-        </div>
-
-        {/* CONFIRM */}
-        <div>
-          <label className="text-sm text-gray-500">
-            Confirm Password
-          </label>
-
-          <div className="relative mt-1">
-            <input
-              type={showConfirm ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full border p-3 rounded-xl pr-12"
-            />
-
-            <button
-              onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-3 top-3 text-sm text-gray-500"
-            >
-              {showConfirm ? 'Hide' : 'Show'}
-            </button>
-          </div>
-        </div>
-
-        {/* ERROR */}
-        {error && (
-          <p className="text-red-500 text-sm">{error}</p>
-        )}
-
-        {/* BUTTON */}
-        <button
-          onClick={handleSignup}
-          disabled={loading}
-          className={`w-full py-3 rounded-xl text-white ${
-            loading
-              ? 'bg-gray-400'
-              : 'bg-[#C6A96B] hover:opacity-90'
-          }`}
+        <AuthCard
+          title="Create account"
+          subtitle="Join Fresh Look"
         >
-          {loading ? 'Creating account...' : 'Sign Up'}
-        </button>
+          <div className="space-y-4">
 
-        {/* LOGIN */}
-        <p className="text-sm text-center">
-          Already have an account?{' '}
-          <span
-            onClick={() => router.push('/login')}
-            className="text-[#C6A96B] cursor-pointer"
-          >
-            Login
-          </span>
-        </p>
+            {/* NAME */}
+            <div>
+              <label className="text-sm text-gray-600">Full Name</label>
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full border border-[#e5dccb] bg-[#F7EEDF] p-3 rounded-xl mt-1 focus:outline-none focus:border-[#C6A96B]"
+              />
+            </div>
+
+            {/* PHONE */}
+            <div>
+              <label className="text-sm text-gray-600">Phone</label>
+              <PhoneInput
+                country={'xk'}
+                value={phone}
+                onChange={(phone) => setPhone(phone)}
+                inputClass="!w-full !h-12 !rounded-xl !border !border-[#e5dccb] !bg-[#F7EEDF]"
+                containerClass="w-full mt-1"
+                dropdownClass="!z-[9999]"
+              />
+            </div>
+
+            {/* EMAIL */}
+            <div>
+              <label className="text-sm text-gray-600">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-[#e5dccb] bg-[#F7EEDF] p-3 rounded-xl mt-1 focus:outline-none focus:border-[#C6A96B]"
+              />
+            </div>
+
+            {/* PASSWORD */}
+            <div>
+              <label className="text-sm text-gray-600">Password</label>
+
+              <div className="relative mt-1">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-[#e5dccb] bg-[#F7EEDF] p-3 rounded-xl pr-12 focus:outline-none focus:border-[#C6A96B]"
+                />
+
+                <button
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-3 text-sm text-gray-500"
+                >
+                  {showPass ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            {/* CONFIRM */}
+            <div>
+              <label className="text-sm text-gray-600">
+                Confirm Password
+              </label>
+
+              <div className="relative mt-1">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full border border-[#e5dccb] bg-[#F7EEDF] p-3 rounded-xl pr-12 focus:outline-none focus:border-[#C6A96B]"
+                />
+
+                <button
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-3 text-sm text-gray-500"
+                >
+                  {showConfirm ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
+
+            {/* ERROR */}
+            {error && (
+              <p className="text-red-500 text-sm">{error}</p>
+            )}
+
+            {/* BUTTON */}
+            <button
+              onClick={handleSignup}
+              disabled={loading}
+              className={`w-full py-3 rounded-xl text-white ${
+                loading
+                  ? 'bg-gray-400'
+                  : 'bg-[#C6A96B] hover:opacity-90'
+              }`}
+            >
+              {loading ? 'Creating account...' : 'Sign Up'}
+            </button>
+
+            {/* LOGIN */}
+            <p className="text-sm text-center">
+              Already have an account?{' '}
+              <span
+                onClick={() => router.push('/login')}
+                className="text-[#C6A96B] cursor-pointer"
+              >
+                Login
+              </span>
+            </p>
+
+          </div>
+        </AuthCard>
 
       </div>
-    </AuthCard>
+    </div>
   )
 }

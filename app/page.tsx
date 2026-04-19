@@ -61,13 +61,10 @@ export default function HomePage() {
   const [slides, setSlides] = useState<Slide[]>([])
   const [current, setCurrent] = useState(0)
 
-  const [serviceIndex, setServiceIndex] = useState(0)
   const [productIndex, setProductIndex] = useState(0)
-
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   const visibleCount = 4
-  const step = 1
 
   useEffect(() => {
     fetchData()
@@ -103,12 +100,17 @@ export default function HomePage() {
 
   const currentSlide = slides[current]
 
+  const calcDiscount = (price: number, sale: number | null) => {
+    if (!sale) return 0
+    return Math.round(((price - sale) / price) * 100)
+  }
+
   return (
     <main className="bg-[#F7EEDF] text-[#1A1A1A]">
 
       {/* HERO */}
-      <section className="relative h-[90vh] flex items-center justify-center text-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center scale-110"
+      <section className="relative h-[40vh] sm:h-[70vh] md:h-[90vh] flex items-center justify-center text-center overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${currentSlide?.image_desktop || '/assets/product1.jpg'})` }}
         />
         <div className="absolute inset-0 bg-black/60" />
@@ -137,28 +139,62 @@ export default function HomePage() {
       </section>
 
       {/* SERVICES */}
-      <section className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
+      <section className="max-w-7xl mx-auto px-4 pt-6 pb-12 sm:pb-16">
         <h2 className="text-3xl sm:text-4xl font-playfair text-center mb-12">
           Treatments
         </h2>
 
-        <div className="flex sm:grid sm:grid-cols-4 gap-6 overflow-x-auto snap-x snap-mandatory">
-          {services.slice(serviceIndex, serviceIndex + visibleCount).map((s) => (
-            <div key={s.id} className="snap-center min-w-[65%] sm:min-w-0 bg-white rounded-3xl shadow-lg flex flex-col">
-              <div className="h-40 bg-cover bg-center" style={{ backgroundImage: `url(${s.image_url})` }} />
-              <div className="p-5 flex flex-col flex-1 justify-between">
+        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory py-4">
+          {services.map((s) => (
+            <motion.div key={s.id} whileHover={{ y: -6 }}
+              className="snap-center min-w-[42%] sm:min-w-[23%] bg-white rounded-3xl shadow-lg flex flex-col relative"
+            >
+              {s.is_on_sale && s.sale_price && (
+                <div className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10">
+                  -{calcDiscount(s.price, s.sale_price)}%
+                </div>
+              )}
+
+              <div
+  onClick={() => router.push(`/services/${s.id}`)}
+  className="aspect-[4/3] w-full bg-cover bg-center rounded-t-3xl overflow-hidden cursor-pointer"
+  style={{ backgroundImage: `url(${s.image_url})` }}
+/>
+
+              <div className="p-4 flex flex-col flex-1 justify-between">
                 <h3 className="text-sm font-semibold">{s.name}</h3>
-                <button onClick={() => router.push('/book')} className="mt-4 w-full bg-[#C6A96B] text-white py-3 rounded-full">
+
+                <div className="mt-2">
+                  {s.is_on_sale && s.sale_price ? (
+                    <div className="flex gap-2 items-center">
+                      <span className="text-[#C6A96B] font-semibold">
+                        €{s.sale_price}
+                      </span>
+                      <span className="text-gray-400 line-through text-sm">
+                        €{s.price}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[#C6A96B] font-semibold">
+                      €{s.price}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => router.push('/book')}
+                  className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
+                >
                   Book Now
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* STATS */}
-      <section className="py-20 text-center">
+      <section className="pt-6 pb-0 text-center">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-5xl mx-auto">
           {[
             { label: 'Happy Clients', value: 5000 },
@@ -166,12 +202,7 @@ export default function HomePage() {
             { label: 'Years Experience', value: 5 },
             { label: '5★ Reviews', value: 500 },
           ].map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.2 }}
-            >
+            <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}>
               <h3 className="text-4xl font-bold text-[#C6A96B]">
                 <Counter value={item.value} />
               </h3>
@@ -187,18 +218,42 @@ export default function HomePage() {
           Skin Care Products Shop
         </h2>
 
-        <div className="flex sm:grid sm:grid-cols-4 gap-6 overflow-x-auto snap-x snap-mandatory">
-          {products.slice(productIndex, productIndex + visibleCount).map((p) => (
+        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory py-4">
+          {products.map((p) => (
             <motion.div key={p.id} whileHover={{ y: -6 }}
-              className="snap-center min-w-[65%] sm:min-w-0 bg-white rounded-3xl shadow-lg flex flex-col"
+              className="snap-center min-w-[42%] sm:min-w-[23%] bg-white rounded-3xl shadow-lg flex flex-col relative"
             >
-              <div onClick={() => setSelectedProduct(p)}
-                className="h-40 bg-cover bg-center cursor-pointer"
+              {p.is_on_sale && p.sale_price && (
+                <div className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10">
+                  -{calcDiscount(p.price, p.sale_price)}%
+                </div>
+              )}
+
+              <div
+                onClick={() => router.push(`/shop/${p.id}`)}
+                className="aspect-[4/3] w-full bg-cover bg-center cursor-pointer rounded-t-3xl overflow-hidden"
                 style={{ backgroundImage: `url(${p.image_url})` }}
               />
 
-              <div className="p-5 flex flex-col flex-1 justify-between">
+              <div className="p-4 flex flex-col flex-1 justify-between">
                 <h3 className="text-sm font-semibold">{p.name}</h3>
+
+                <div className="mt-2">
+                  {p.is_on_sale && p.sale_price ? (
+                    <div className="flex gap-2 items-center">
+                      <span className="text-[#C6A96B] font-semibold">
+                        €{p.sale_price}
+                      </span>
+                      <span className="text-gray-400 line-through text-sm">
+                        €{p.price}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[#C6A96B] font-semibold">
+                      €{p.price}
+                    </span>
+                  )}
+                </div>
 
                 <button
                   onClick={() =>
@@ -207,7 +262,7 @@ export default function HomePage() {
                       image: p.image_url,
                     })
                   }
-                  className="mt-4 w-full bg-[#C6A96B] text-white py-3 rounded-full"
+                  className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
                 >
                   Add to Cart
                 </button>
@@ -225,7 +280,8 @@ export default function HomePage() {
               <X />
             </button>
 
-            <div className="h-60 bg-cover bg-center"
+            <div
+              className="aspect-[4/3] w-full bg-cover bg-center"
               style={{ backgroundImage: `url(${selectedProduct.image_url})` }}
             />
 

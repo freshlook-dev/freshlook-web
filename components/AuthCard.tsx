@@ -10,8 +10,8 @@ export default function AuthCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-neutral-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 space-y-6 border">
+    <div className="min-h-screen flex items-center justify-center bg-[#F7EEDF] px-4">
+      <div className="bg-[#F7EEDF]/95 backdrop-blur-md border border-[#e5dccb] rounded-2xl shadow-xl p-6">
 
         <div className="text-center">
           <h1 className="text-2xl font-semibold">{title}</h1>
