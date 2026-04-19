@@ -1,6 +1,5 @@
-'use client'
-
-import '../globals.css'
+// @ts-ignore
+import './globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { Inter, Playfair_Display } from 'next/font/google'
