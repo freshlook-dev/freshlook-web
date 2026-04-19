@@ -28,7 +28,7 @@ export default function Header() {
   const [role, setRole] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [initials, setInitials] = useState('')
-  const [avatar, setAvatar] = useState<string | null>(null) // ✅ added
+  const [avatar, setAvatar] = useState<string | null>(null)
 
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -72,10 +72,9 @@ export default function Header() {
 
       setInitials(init || user.email?.[0]?.toUpperCase() || '')
 
-      // ✅ avatar fix
+      // ✅ FIXED HERE (no double URL)
       if (profile.avatar_url) {
-        const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${profile.avatar_url}`
-        setAvatar(url)
+        setAvatar(profile.avatar_url)
       } else {
         setAvatar(null)
       }
@@ -336,7 +335,7 @@ export default function Header() {
                   </motion.div>
                 ))}
               </div>
-                {/* NEW SECTION */}
+
 <div className="px-6 mt-8 space-y-3">
 
   <button
@@ -368,6 +367,7 @@ export default function Header() {
   )}
 
 </div>
+
               <div className="flex-1" />
             </motion.div>
           </>

@@ -9,7 +9,6 @@ export default function ProfilePage() {
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [avatar, setAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -32,12 +31,6 @@ export default function ProfilePage() {
 
       if (data) {
         setProfile(data)
-
-        // ✅ FIX: BUILD IMAGE URL FROM FILENAME
-        if (data.avatar_url) {
-          const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${data.avatar_url}`
-          setAvatar(url)
-        }
       }
     }
 
@@ -67,16 +60,6 @@ export default function ProfilePage() {
         {/* HEADER */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">My Profile</h1>
-
-          {/* ✅ AVATAR FIXED */}
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-200 shadow-md">
-  {avatar && (
-    <img
-      src={`${avatar}?t=${Date.now()}`}
-      className="w-full h-full object-cover"
-    />
-  )}
-</div>
         </div>
 
         {/* USER INFO */}

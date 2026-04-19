@@ -7,88 +7,6 @@ import { useEffect, useState } from 'react'
 export default function SettingsPage() {
   const router = useRouter()
 
-  const [avatar, setAvatar] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false)
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) return
-
-      const { data } = await supabase
-        .from('profiles')
-        .select('avatar_url')
-        .eq('id', user.id)
-        .single()
-
-      if (data?.avatar_url) {
-        const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${data.avatar_url}`
-        setAvatar(url)
-      }
-    }
-
-    fetchProfile()
-  }, [])
-
-  const handleUpload = async (e: any) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    // GET OLD AVATAR
-    const { data: old } = await supabase
-      .from('profiles')
-      .select('avatar_url')
-      .eq('id', user.id)
-      .single()
-
-    // DELETE OLD FILE
-    if (old?.avatar_url) {
-      await supabase.storage
-        .from('avatars')
-        .remove([old.avatar_url])
-    }
-
-    // FORCE CONSISTENT NAME
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}.${fileExt}`
-
-    // UPLOAD NEW
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, file, {
-        upsert: true,
-      })
-
-    if (error) {
-      alert('Upload failed')
-      setUploading(false)
-      return
-    }
-
-    // SAVE CLEAN VALUE (ONLY FILENAME)
-    await supabase
-      .from('profiles')
-      .update({ avatar_url: fileName })
-      .eq('id', user.id)
-
-    // UPDATE UI
-    const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`
-    setAvatar(url)
-
-    setUploading(false)
-  }
-
   const handleDeleteAccount = async () => {
     const confirmDelete = confirm(
       'Are you sure you want to delete your account? This action cannot be undone.'
@@ -121,31 +39,6 @@ export default function SettingsPage() {
           >
             ← Back to Profile
           </button>
-
-          {/* AVATAR */}
-          <div className="relative group">
-
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-[#e5dccb] bg-gray-100">
-  {avatar && (
-    <img
-      src={`${avatar}?t=${Date.now()}`}
-      className="w-full h-full object-cover"
-    />
-  )}
-</div>
-
-            {/* UPLOAD */}
-            <label className="absolute bottom-0 right-0 bg-[#C6A96B] text-white text-xs px-2 py-1 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition">
-              Edit
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleUpload}
-                className="hidden"
-              />
-            </label>
-
-          </div>
 
         </div>
 
@@ -206,12 +99,6 @@ export default function SettingsPage() {
           </button>
 
         </div>
-
-        {uploading && (
-          <p className="text-sm text-gray-500 text-center">
-            Uploading...
-          </p>
-        )}
 
       </div>
     </div>
