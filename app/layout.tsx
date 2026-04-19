@@ -1,7 +1,6 @@
+'use client'
 
-// @ts-ignore
-
-import './globals.css'
+import '../globals.css'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { Inter, Playfair_Display } from 'next/font/google'
@@ -22,7 +21,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${playfair.variable} bg-[#F7EEDF] text-neutral-900`}
       >
-        {/* Meta Pixel */}
+        {/* ✅ META PIXEL */}
         <Script id="facebook-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
