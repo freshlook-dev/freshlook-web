@@ -9,20 +9,18 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const init = async () => {
-      // 🔥 force Supabase to load session
       await supabase.auth.getSession()
 
-      // small delay to ensure cookie sync
       setTimeout(() => {
         router.replace('/')
       }, 300)
     }
 
-    init()
-  }, [])
+    void init()
+  }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center">
       Signing you in...
     </div>
   )

@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -28,78 +27,52 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#F7EEDF] p-6">
-      <div className="max-w-xl mx-auto space-y-6">
-
-        {/* HEADER */}
+      <div className="mx-auto max-w-xl space-y-6">
         <div className="flex items-center justify-between">
-
           <button
             onClick={() => router.push('/profile')}
             className="text-sm text-gray-500 hover:text-black"
           >
-            ← Back to Profile
+            {'<-'} Back to Profile
           </button>
-
         </div>
 
         <h1 className="text-2xl font-semibold">Settings</h1>
 
-        {/* SETTINGS */}
-        <div className="bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl shadow-md overflow-hidden">
-
-          {/* PERSONAL */}
+        <div className="overflow-hidden rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] shadow-md">
           <button
             onClick={() => router.push('/settings/personal')}
-            className="w-full flex items-center justify-between p-5 border-b border-[#e5dccb] hover:bg-white transition"
+            className="flex w-full items-center justify-between border-b border-[#e5dccb] p-5 transition hover:bg-white"
           >
             <div className="text-left">
-              <p className="font-medium leading-none">
-                Personal Information
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Name, phone, email
-              </p>
+              <p className="font-medium leading-none">Personal Information</p>
+              <p className="mt-1 text-sm text-gray-500">Name, phone, email</p>
             </div>
-
-            <span className="text-gray-400 text-lg">→</span>
+            <span className="text-lg text-gray-400">{'->'}</span>
           </button>
 
-          {/* PASSWORD */}
           <button
             onClick={() => router.push('/settings/password')}
-            className="w-full flex items-center justify-between p-5 border-b border-[#e5dccb] hover:bg-white transition"
+            className="flex w-full items-center justify-between border-b border-[#e5dccb] p-5 transition hover:bg-white"
           >
             <div className="text-left">
-              <p className="font-medium leading-none">
-                Change Password
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Update your account password
-              </p>
+              <p className="font-medium leading-none">Change Password</p>
+              <p className="mt-1 text-sm text-gray-500">Update your account password</p>
             </div>
-
-            <span className="text-gray-400 text-lg">→</span>
+            <span className="text-lg text-gray-400">{'->'}</span>
           </button>
 
-          {/* DELETE */}
           <button
             onClick={handleDeleteAccount}
-            className="w-full flex items-center justify-between p-5 hover:bg-red-50 transition"
+            className="flex w-full items-center justify-between p-5 transition hover:bg-red-50"
           >
             <div className="text-left">
-              <p className="font-medium text-red-600">
-                Delete Account
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Permanently remove your account
-              </p>
+              <p className="font-medium text-red-600">Delete Account</p>
+              <p className="mt-1 text-sm text-gray-500">Permanently remove your account</p>
             </div>
-
-            <span className="text-red-400 text-lg">→</span>
+            <span className="text-lg text-red-400">{'->'}</span>
           </button>
-
         </div>
-
       </div>
     </div>
   )

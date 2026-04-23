@@ -14,6 +14,10 @@ type Service = {
   duration: number
 }
 
+type AppointmentTimeRow = {
+  appointment_time: string
+}
+
 export default function BookingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -21,25 +25,20 @@ export default function BookingPage() {
   const selectedServiceId = searchParams.get('service')
 
   const [step, setStep] = useState(1)
-
   const [services, setServices] = useState<Service[]>([])
   const [selectedService, setSelectedService] = useState<Service | null>(null)
-
-  const [location, setLocation] = useState<string>('')
-
+  const [location, setLocation] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [bookedTimes, setBookedTimes] = useState<string[]>([])
-
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
-
   const [loading, setLoading] = useState(false)
 
   const timeSlots = [
-    '09:00','10:00','11:00','12:00',
-    '13:00','14:00','15:00','16:00','17:00'
+    '09:00', '10:00', '11:00', '12:00',
+    '13:00', '14:00', '15:00', '16:00', '17:00',
   ]
 
   useEffect(() => {
@@ -49,15 +48,16 @@ export default function BookingPage() {
         .select('*')
         .eq('is_active', true)
 
-      if (data) {
-        setServices(data)
+      if (!data) return
 
-        if (selectedServiceId) {
-          const found = data.find(s => s.id === selectedServiceId)
-          if (found) {
-            setSelectedService(found)
-            setStep(2)
-          }
+      setServices(data)
+
+      if (selectedServiceId) {
+        const found = data.find((service) => service.id === selectedServiceId)
+
+        if (found) {
+          setSelectedService(found)
+          setStep(2)
         }
       }
     }
@@ -78,13 +78,13 @@ export default function BookingPage() {
         .eq('location', location)
         .eq('status', 'upcoming')
 
-      if (data) {
-        const formatted = data.map(a =>
-          a.appointment_time.substring(0, 5)
-        )
+      if (!data) return
 
-        setBookedTimes(formatted)
-      }
+      const formatted = (data as AppointmentTimeRow[]).map((appointment) =>
+        appointment.appointment_time.substring(0, 5)
+      )
+
+      setBookedTimes(formatted)
     }
 
     fetchBooked()
@@ -110,7 +110,7 @@ export default function BookingPage() {
       appointment_date: new Date(date).toISOString().split('T')[0],
       appointment_time: time,
       client_name: name,
-      phone: phone,
+      phone,
       email: email || null,
       user_id: user?.id || null,
       created_by: user?.id || null,
@@ -127,7 +127,6 @@ export default function BookingPage() {
       return
     }
 
-    // ✅ SEND EMAIL CONFIRMATION (ONLY IF EMAIL EXISTS)
     if (email) {
       try {
         await fetch('/api/send-booking-email', {
@@ -150,18 +149,16 @@ export default function BookingPage() {
     }
 
     setLoading(false)
-
     router.push('/book/success')
   }
 
   const steps = ['Service', 'Location', 'Date', 'Info']
+  const locations = ['Prishtine', 'Fushe Kosove']
 
   return (
     <main className="w-full px-4 py-10 max-w-3xl mx-auto bg-[#F7EEDF] min-h-screen">
-
       <div className="mb-10">
         <div className="flex justify-between items-center relative">
-
           <div className="absolute top-1/2 left-0 w-full h-1 bg-[#e5dccb] -translate-y-1/2 rounded-full" />
 
           <motion.div
@@ -172,19 +169,21 @@ export default function BookingPage() {
           />
 
           {steps.map((label, i) => {
-            const s = i + 1
-            const active = step >= s
+            const currentStep = i + 1
+            const active = step >= currentStep
 
             return (
-              <div key={i} className="z-10 flex flex-col items-center text-center w-full">
+              <div key={label} className="z-10 flex flex-col items-center text-center w-full">
                 <motion.div
                   initial={{ scale: 0.8 }}
                   animate={{ scale: active ? 1 : 0.9 }}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all
-                    ${active ? 'bg-[#C6A96B] text-white shadow-lg' : 'bg-white border border-[#e5dccb] text-gray-400'}
-                  `}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-[#C6A96B] text-white shadow-lg'
+                      : 'bg-white border border-[#e5dccb] text-gray-400'
+                  }`}
                 >
-                  {s}
+                  {currentStep}
                 </motion.div>
 
                 <span className={`text-xs mt-2 ${active ? 'text-black font-medium' : 'text-gray-400'}`}>
@@ -201,7 +200,7 @@ export default function BookingPage() {
           onClick={() => setStep(step - 1)}
           className="mb-6 text-sm text-gray-600 hover:text-black"
         >
-          ← Back
+          Back
         </button>
       )}
 
@@ -213,7 +212,6 @@ export default function BookingPage() {
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
         >
-
           {step === 1 && (
             <div>
               <h2 className="mb-4 font-semibold">Select Service</h2>
@@ -230,7 +228,7 @@ export default function BookingPage() {
                   >
                     <h3 className="font-semibold">{service.name}</h3>
                     <p className="text-sm text-gray-500">
-                      €{service.price} • {service.duration} min
+                      EUR {service.price} - {service.duration} min
                     </p>
                   </motion.div>
                 ))}
@@ -242,7 +240,7 @@ export default function BookingPage() {
             <div>
               <h2 className="mb-4 font-semibold">Select Location</h2>
               <div className="grid grid-cols-2 gap-4">
-                {['Prishtinë', 'Fushë Kosovë'].map((loc) => (
+                {locations.map((loc) => (
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     key={loc}
@@ -296,8 +294,8 @@ export default function BookingPage() {
                           isBooked
                             ? 'bg-gray-100 text-gray-400'
                             : time === slot
-                            ? 'border-[#C6A96B] bg-white'
-                            : 'border-[#e5dccb] bg-[#F7EEDF]'
+                              ? 'border-[#C6A96B] bg-white'
+                              : 'border-[#e5dccb] bg-[#F7EEDF]'
                         }`}
                       >
                         {slot}
@@ -343,7 +341,6 @@ export default function BookingPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
-              {/* ✅ PROFESSIONAL HELPER TEXT */}
               <p className="text-sm text-gray-500 mt-2">
                 Enter your email address if you would like to receive a booking confirmation.
               </p>
@@ -357,10 +354,8 @@ export default function BookingPage() {
               </button>
             </div>
           )}
-
         </motion.div>
       </AnimatePresence>
-
     </main>
   )
 }

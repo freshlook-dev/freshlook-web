@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
+type OrderItem = {
+  name: string
+  quantity: number
+  price: number
+}
+
 type Order = {
   id: string
   full_name: string
@@ -10,7 +16,7 @@ type Order = {
   address: string
   instructions: string
   payment_method: string
-  items: any[]
+  items: OrderItem[]
   subtotal: number
   total: number
   status: string
@@ -27,117 +33,103 @@ export default function OrdersAdminPage() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (data) setOrders(data)
+    if (data) {
+      setOrders(data as Order[])
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchOrders()
+    const timer = window.setTimeout(() => {
+      void fetchOrders()
+    }, 0)
+
+    return () => window.clearTimeout(timer)
   }, [])
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase
-      .from('orders')
-      .update({ status })
-      .eq('id', id)
-
-    fetchOrders()
+    await supabase.from('orders').update({ status }).eq('id', id)
+    void fetchOrders()
   }
 
   return (
-    <main className="p-6 max-w-6xl mx-auto">
-
-      <h1 className="text-3xl font-playfair mb-6">
-        Orders Management
-      </h1>
+    <main className="mx-auto max-w-6xl p-6">
+      <h1 className="mb-6 text-3xl font-playfair">Orders Management</h1>
 
       {loading && <p>Loading...</p>}
 
       <div className="space-y-6">
         {orders.map((order) => (
-          <div
-            key={order.id}
-            className="bg-white rounded-2xl shadow p-5"
-          >
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-3">
+          <div key={order.id} className="rounded-2xl bg-white p-5 shadow">
+            <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="font-semibold">{order.full_name}</p>
                 <p className="text-sm text-gray-500">{order.phone}</p>
               </div>
 
-              <span className="text-sm bg-gray-100 px-3 py-1 rounded">
+              <span className="rounded bg-gray-100 px-3 py-1 text-sm">
                 {order.status}
               </span>
             </div>
 
-            {/* ADDRESS */}
-            <p className="text-sm mb-2">
+            <p className="mb-2 text-sm">
               <strong>Address:</strong> {order.address}
             </p>
 
             {order.instructions && (
-              <p className="text-sm mb-2">
+              <p className="mb-2 text-sm">
                 <strong>Instructions:</strong> {order.instructions}
               </p>
             )}
 
-            <p className="text-sm mb-2">
+            <p className="mb-2 text-sm">
               <strong>Payment:</strong> {order.payment_method}
             </p>
 
-            {/* ITEMS */}
             <div className="mt-3 border-t pt-3">
-              <p className="font-semibold mb-2">Items:</p>
+              <p className="mb-2 font-semibold">Items:</p>
 
-              {order.items?.map((item: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex justify-between text-sm mb-1"
-                >
+              {order.items?.map((item, index) => (
+                <div key={index} className="mb-1 flex justify-between text-sm">
                   <span>
-                    {item.name} × {item.quantity}
+                    {item.name} x {item.quantity}
                   </span>
-                  <span>€{item.price}</span>
+                  <span>EUR {item.price}</span>
                 </div>
               ))}
             </div>
 
-            {/* TOTAL */}
             <div className="mt-3 flex justify-between font-semibold">
               <span>Total</span>
-              <span>€{order.total}</span>
+              <span>EUR {order.total}</span>
             </div>
 
-            {/* ACTIONS */}
-            <div className="flex gap-2 mt-4">
-
+            <div className="mt-4 flex gap-2">
               <button
                 onClick={() => updateStatus(order.id, 'delivered')}
-                className="bg-green-500 text-white px-3 py-1 rounded"
+                className="rounded bg-green-500 px-3 py-1 text-white"
               >
                 Delivered
               </button>
 
               <button
                 onClick={() => updateStatus(order.id, 'canceled')}
-                className="bg-red-500 text-white px-3 py-1 rounded"
+                className="rounded bg-red-500 px-3 py-1 text-white"
               >
                 Cancel
               </button>
 
               <button
                 onClick={() => updateStatus(order.id, 'pending')}
-                className="bg-yellow-500 text-white px-3 py-1 rounded"
+                className="rounded bg-yellow-500 px-3 py-1 text-white"
               >
                 Pending
               </button>
-
             </div>
           </div>
         ))}
       </div>
-
     </main>
   )
 }

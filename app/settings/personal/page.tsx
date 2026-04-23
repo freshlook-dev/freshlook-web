@@ -1,45 +1,46 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
+
+type Profile = {
+  full_name: string
+  phone: string
+  avatar_url: string
+}
 
 export default function PersonalPage() {
   const router = useRouter()
 
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<Profile>({
     full_name: '',
     phone: '',
     avatar_url: '',
   })
-
   const [modal, setModal] = useState<null | 'name' | 'phone'>(null)
   const [tempValue, setTempValue] = useState('')
 
-  useEffect(() => {
-    fetchUser()
-  }, [])
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const {
-      data: { user },
+      data: { user: currentUser },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (!currentUser) {
       router.push('/login')
       return
     }
 
-    setUser(user)
+    setUser(currentUser)
 
     const { data } = await supabase
       .from('profiles')
       .select('full_name, phone, avatar_url')
-      .eq('id', user.id)
+      .eq('id', currentUser.id)
       .single()
 
     if (data) {
@@ -49,7 +50,11 @@ export default function PersonalPage() {
         avatar_url: data.avatar_url || '',
       })
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    void fetchUser()
+  }, [fetchUser])
 
   const openModal = (type: 'name' | 'phone') => {
     setModal(type)
@@ -61,15 +66,9 @@ export default function PersonalPage() {
 
     setLoading(true)
 
-    const updates =
-      modal === 'name'
-        ? { full_name: tempValue }
-        : { phone: tempValue }
+    const updates = modal === 'name' ? { full_name: tempValue } : { phone: tempValue }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
+    const { error } = await supabase.from('profiles').update(updates).eq('id', user.id)
 
     setLoading(false)
 
@@ -79,13 +78,12 @@ export default function PersonalPage() {
     }
 
     setModal(null)
-    fetchUser()
+    void fetchUser()
   }
 
-  // 🔥 UPLOAD AVATAR
-  const handleUpload = async (e: any) => {
+  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     try {
-      const file = e.target.files[0]
+      const file = event.target.files?.[0]
       if (!file || !user) return
 
       setUploading(true)
@@ -97,25 +95,23 @@ export default function PersonalPage() {
         .from('avatars')
         .upload(fileName, file, { upsert: true })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        throw uploadError
+      }
 
-      const { data } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName)
       const publicUrl = data.publicUrl
 
-      await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id)
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
 
       setProfile((prev) => ({
         ...prev,
         avatar_url: publicUrl,
       }))
-    } catch (err: any) {
-      alert(err.message)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to upload image'
+      alert(message)
     }
 
     setUploading(false)
@@ -123,36 +119,30 @@ export default function PersonalPage() {
 
   return (
     <div className="min-h-screen bg-[#F7EEDF] p-6">
-      <div className="max-w-xl mx-auto space-y-6">
-
-        {/* BACK */}
+      <div className="mx-auto max-w-xl space-y-6">
         <button
           onClick={() => router.push('/settings')}
           className="text-sm text-gray-500 hover:text-black"
         >
-          ← Back to Settings
+          {'<-'} Back to Settings
         </button>
 
-        <h1 className="text-2xl font-semibold">
-          Personal Information
-        </h1>
+        <h1 className="text-2xl font-semibold">Personal Information</h1>
 
-        {/* AVATAR */}
         <div className="flex flex-col items-center gap-3">
-          <div className="w-24 h-24 rounded-full overflow-hidden border border-[#e5dccb] shadow-md bg-white flex items-center justify-center">
+          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-[#e5dccb] bg-white shadow-md">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
-                className="w-full h-full object-cover"
+                alt="Profile"
+                className="h-full w-full object-cover"
               />
             ) : (
-              <span className="text-gray-400 text-sm">
-                No Photo
-              </span>
+              <span className="text-sm text-gray-400">No Photo</span>
             )}
           </div>
 
-          <label className="text-sm text-[#C6A96B] cursor-pointer">
+          <label className="cursor-pointer text-sm text-[#C6A96B]">
             {uploading ? 'Uploading...' : 'Change Photo'}
             <input
               type="file"
@@ -163,60 +153,48 @@ export default function PersonalPage() {
           </label>
         </div>
 
-        {/* CARD */}
-        <div className="bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl shadow-md overflow-hidden">
-
-          {/* NAME */}
+        <div className="overflow-hidden rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] shadow-md">
           <button
             onClick={() => openModal('name')}
-            className="w-full p-5 flex justify-between items-center border-b border-[#e5dccb] hover:bg-white transition"
+            className="flex w-full items-center justify-between border-b border-[#e5dccb] p-5 transition hover:bg-white"
           >
             <div className="text-left">
               <p className="text-xs text-gray-500">Full Name</p>
-              <p className="font-medium">
-                {profile.full_name || '—'}
-              </p>
+              <p className="font-medium">{profile.full_name || '-'}</p>
             </div>
-            <span className="text-gray-400 text-lg">→</span>
+            <span className="text-lg text-gray-400">{'->'}</span>
           </button>
 
-          {/* PHONE */}
           <button
             onClick={() => openModal('phone')}
-            className="w-full p-5 flex justify-between items-center hover:bg-white transition"
+            className="flex w-full items-center justify-between p-5 transition hover:bg-white"
           >
             <div className="text-left">
               <p className="text-xs text-gray-500">Phone</p>
-              <p className="font-medium">
-                {profile.phone || '—'}
-              </p>
+              <p className="font-medium">{profile.phone || '-'}</p>
             </div>
-            <span className="text-gray-400 text-lg">→</span>
+            <span className="text-lg text-gray-400">{'->'}</span>
           </button>
-
         </div>
       </div>
 
-      {/* MODAL */}
       {modal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-
-          <div className="bg-[#F7EEDF] border border-[#e5dccb] w-full max-w-md rounded-3xl p-6 space-y-5 shadow-xl">
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md space-y-5 rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] p-6 shadow-xl">
             <h2 className="text-lg font-semibold">
               Edit {modal === 'name' ? 'Name' : 'Phone'}
             </h2>
 
             <input
               value={tempValue}
-              onChange={(e) => setTempValue(e.target.value)}
-              className="w-full border border-[#e5dccb] p-3 rounded-xl bg-white"
+              onChange={(event) => setTempValue(event.target.value)}
+              className="w-full rounded-xl border border-[#e5dccb] bg-white p-3"
             />
 
             <div className="flex gap-3">
               <button
                 onClick={() => setModal(null)}
-                className="flex-1 border border-[#e5dccb] py-3 rounded-full hover:bg-white transition"
+                className="flex-1 rounded-full border border-[#e5dccb] py-3 transition hover:bg-white"
               >
                 Cancel
               </button>
@@ -224,14 +202,12 @@ export default function PersonalPage() {
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="flex-1 bg-[#C6A96B] hover:bg-[#b8965a] transition text-white py-3 rounded-full shadow-md"
+                className="flex-1 rounded-full bg-[#C6A96B] py-3 text-white shadow-md transition hover:bg-[#b8965a]"
               >
                 {loading ? 'Saving...' : 'Save'}
               </button>
             </div>
-
           </div>
-
         </div>
       )}
     </div>

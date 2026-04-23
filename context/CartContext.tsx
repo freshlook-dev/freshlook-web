@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 type CartItem = {
   id: string
@@ -10,6 +11,7 @@ type CartItem = {
   quantity: number
   is_on_sale?: boolean
   sale_price?: number | null
+  is_out_of_stock?: boolean
 }
 
 type Promo = {
@@ -18,19 +20,26 @@ type Promo = {
   discount_value: number
 }
 
+type ProductSnapshot = {
+  id: string
+  name: string
+  price: number
+  image_url: string | null
+  is_on_sale: boolean
+  sale_price: number | null
+  is_out_of_stock: boolean
+}
+
 type CartContextType = {
   cart: CartItem[]
   promo: Promo | null
-
   addToCart: (product: Omit<CartItem, 'quantity'>) => void
   removeFromCart: (id: string) => void
   increaseQty: (id: string) => void
   decreaseQty: (id: string) => void
   clearCart: () => void
-
   applyPromo: (promo: Promo) => void
   removePromo: () => void
-
   subtotal: number
   discount: number
   total: number
@@ -39,16 +48,20 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | null>(null)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [promo, setPromo] = useState<Promo | null>(null)
+  const hasSyncedInventory = useRef(false)
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window === 'undefined') return []
 
-  useEffect(() => {
     const storedCart = localStorage.getItem('cart')
-    const storedPromo = localStorage.getItem('promo')
+    return storedCart ? (JSON.parse(storedCart) as CartItem[]) : []
+  })
 
-    if (storedCart) setCart(JSON.parse(storedCart))
-    if (storedPromo) setPromo(JSON.parse(storedPromo))
-  }, [])
+  const [promo, setPromo] = useState<Promo | null>(() => {
+    if (typeof window === 'undefined') return null
+
+    const storedPromo = localStorage.getItem('promo')
+    return storedPromo ? (JSON.parse(storedPromo) as Promo) : null
+  })
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart))
@@ -62,15 +75,59 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [promo])
 
+  useEffect(() => {
+    const syncCartWithInventory = async () => {
+      if (cart.length === 0) return
+
+      const cartIds = [...new Set(cart.map((item) => item.id))]
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, image_url, is_on_sale, sale_price, is_out_of_stock')
+        .in('id', cartIds)
+
+      if (error || !data) return
+
+      const productMap = new Map(
+        (data as ProductSnapshot[]).map((product) => [product.id, product])
+      )
+
+      setCart((prev) =>
+        prev.reduce<CartItem[]>((acc, item) => {
+          const liveProduct = productMap.get(item.id)
+          if (!liveProduct) return acc
+
+          acc.push({
+            ...item,
+            name: liveProduct.name,
+            price: liveProduct.price,
+            image: liveProduct.image_url || item.image,
+            is_on_sale: liveProduct.is_on_sale,
+            sale_price: liveProduct.sale_price,
+            is_out_of_stock: liveProduct.is_out_of_stock,
+          })
+
+          return acc
+        }, [])
+      )
+    }
+
+    if (hasSyncedInventory.current) {
+      return
+    }
+
+    hasSyncedInventory.current = true
+    void syncCartWithInventory()
+  }, [cart])
+
   const addToCart = (product: Omit<CartItem, 'quantity'>) => {
+    if (product.is_out_of_stock) return
+
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id)
 
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         )
       }
 
@@ -86,7 +143,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) =>
       prev.map((item) =>
         item.id === id
-          ? { ...item, quantity: item.quantity + 1 }
+          ? item.is_out_of_stock
+            ? item
+            : { ...item, quantity: item.quantity + 1 }
           : item
       )
     )
@@ -95,11 +154,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const decreaseQty = (id: string) => {
     setCart((prev) =>
       prev
-        .map((item) =>
-          item.id === id
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
-        )
+        .map((item) => (item.id === id ? { ...item, quantity: item.quantity - 1 } : item))
         .filter((item) => item.quantity > 0)
     )
   }
@@ -109,8 +164,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setPromo(null)
   }
 
-  const applyPromo = (promo: Promo) => {
-    setPromo(promo)
+  const applyPromo = (nextPromo: Promo) => {
+    setPromo(nextPromo)
   }
 
   const removePromo = () => {
@@ -118,11 +173,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const subtotal = cart.reduce((acc, item) => {
-    const price =
-      item.is_on_sale && item.sale_price
-        ? item.sale_price
-        : item.price
-
+    const price = item.is_on_sale && item.sale_price ? item.sale_price : item.price
     return acc + price * item.quantity
   }, 0)
 

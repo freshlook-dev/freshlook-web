@@ -1,32 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 type Booking = {
   id: string
   client_name: string
-  email: string
-  phone: string
-  service: string
+  email: string | null
+  phone: string | null
+  service: string | null
   appointment_date: string
   appointment_time: string
   location: string
   status: string
   total_amount: number | null
-  source: string
+  source: string | null
 }
+
+type SortType = 'latest' | 'earliest' | 'today'
+
+const locationOptions = ['Prishtine', 'Fushe Kosove']
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [filtered, setFiltered] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
-
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
-  const [sortType, setSortType] = useState('latest')
+  const [sortType, setSortType] = useState<SortType>('latest')
 
   const fetchBookings = async () => {
     const { data, error } = await supabase
@@ -34,77 +36,73 @@ export default function BookingsPage() {
       .select('*')
 
     if (!error && data) {
-      setBookings(data)
+      setBookings(data as Booking[])
     }
 
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchBookings()
+    const initialFetch = window.setTimeout(() => {
+      void fetchBookings()
+    }, 0)
 
     const channel = supabase
       .channel('appointments-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'appointments' },
-        () => fetchBookings()
+        () => {
+          void fetchBookings()
+        }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      window.clearTimeout(initialFetch)
+      void supabase.removeChannel(channel)
     }
   }, [])
 
-  useEffect(() => {
+  const filtered = useMemo(() => {
     let data = [...bookings]
 
     if (search) {
+      const query = search.toLowerCase()
       data = data.filter(
-        (b) =>
-          b.client_name?.toLowerCase().includes(search.toLowerCase()) ||
-          b.email?.toLowerCase().includes(search.toLowerCase()) ||
-          b.phone?.toLowerCase().includes(search.toLowerCase()) ||
-          b.service?.toLowerCase().includes(search.toLowerCase())
+        (booking) =>
+          booking.client_name?.toLowerCase().includes(query) ||
+          booking.email?.toLowerCase().includes(query) ||
+          booking.phone?.toLowerCase().includes(query) ||
+          booking.service?.toLowerCase().includes(query)
       )
     }
 
     if (dateFilter) {
-      data = data.filter((b) => b.appointment_date === dateFilter)
+      data = data.filter((booking) => booking.appointment_date === dateFilter)
     }
 
     if (locationFilter) {
-      data = data.filter((b) => b.location === locationFilter)
+      data = data.filter((booking) => booking.location === locationFilter)
     }
 
     if (sourceFilter) {
-      data = data.filter((b) => b.source === sourceFilter)
-    }
-
-    if (sortType === 'latest') {
-      data.sort(
-        (a, b) =>
-          new Date(b.appointment_date).getTime() -
-          new Date(a.appointment_date).getTime()
-      )
-    }
-
-    if (sortType === 'earliest') {
-      data.sort(
-        (a, b) =>
-          new Date(a.appointment_date).getTime() -
-          new Date(b.appointment_date).getTime()
-      )
+      data = data.filter((booking) => booking.source === sourceFilter)
     }
 
     if (sortType === 'today') {
       const today = new Date().toISOString().split('T')[0]
-      data = data.filter((b) => b.appointment_date === today)
+      data = data.filter((booking) => booking.appointment_date === today)
+    } else {
+      data.sort((a, b) => {
+        const aTime = new Date(a.appointment_date).getTime()
+        const bTime = new Date(b.appointment_date).getTime()
+        return sortType === 'latest' ? bTime - aTime : aTime - bTime
+      })
     }
 
-    setFiltered(data)
-  }, [search, dateFilter, locationFilter, sourceFilter, sortType, bookings])
+    return data
+  }, [bookings, search, dateFilter, locationFilter, sourceFilter, sortType])
 
   if (loading) {
     return <div className="p-6">Loading bookings...</div>
@@ -112,7 +110,6 @@ export default function BookingsPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-
       <h1 className="text-2xl font-semibold mb-6">Bookings</h1>
 
       <div className="flex flex-wrap gap-3 mb-6">
@@ -136,8 +133,11 @@ export default function BookingsPage() {
           className="border p-2 rounded"
         >
           <option value="">All Locations</option>
-          <option value="Prishtinë">Prishtinë</option>
-          <option value="Fushë Kosovë">Fushë Kosovë</option>
+          {locationOptions.map((location) => (
+            <option key={location} value={location}>
+              {location}
+            </option>
+          ))}
         </select>
 
         <select
@@ -152,7 +152,7 @@ export default function BookingsPage() {
 
         <select
           value={sortType}
-          onChange={(e) => setSortType(e.target.value)}
+          onChange={(e) => setSortType(e.target.value as SortType)}
           className="border p-2 rounded"
         >
           <option value="latest">Latest</option>
@@ -193,43 +193,37 @@ export default function BookingsPage() {
             </thead>
 
             <tbody className="text-sm">
-              {filtered.map((b) => (
-                <tr key={b.id} className="border-t">
+              {filtered.map((booking) => (
+                <tr key={booking.id} className="border-t">
                   <td className="p-3">
-                    <p className="font-medium">{b.client_name}</p>
-                    <p className="text-xs text-gray-500">{b.phone}</p>
+                    <p className="font-medium">{booking.client_name}</p>
+                    <p className="text-xs text-gray-500">{booking.phone || '-'}</p>
                   </td>
-
-                  <td className="p-3">{b.service}</td>
-                  <td className="p-3">{b.appointment_date}</td>
-                  <td className="p-3">{b.appointment_time}</td>
-                  <td className="p-3">{b.location}</td>
-
-                  <td className="p-3">
-                    €{(b.total_amount ?? 0).toFixed(2)}
-                  </td>
-
+                  <td className="p-3">{booking.service || '-'}</td>
+                  <td className="p-3">{booking.appointment_date}</td>
+                  <td className="p-3">{booking.appointment_time}</td>
+                  <td className="p-3">{booking.location}</td>
+                  <td className="p-3">EUR {(booking.total_amount ?? 0).toFixed(2)}</td>
                   <td className="p-3">
                     <span className="text-xs px-2 py-1 rounded bg-gray-100">
-                      {b.source}
+                      {booking.source || '-'}
                     </span>
                   </td>
-
                   <td className="p-3">
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${
-                        b.status === 'upcoming'
+                        booking.status === 'upcoming'
                           ? 'bg-blue-100 text-blue-600'
-                          : b.status === 'arrived'
-                          ? 'bg-green-100 text-green-600'
-                          : b.status === 'canceled'
-                          ? 'bg-red-100 text-red-600'
-                          : b.status === 'completed'
-                          ? 'bg-gray-200 text-gray-700'
-                          : 'bg-gray-100 text-gray-600'
+                          : booking.status === 'arrived'
+                            ? 'bg-green-100 text-green-600'
+                            : booking.status === 'canceled'
+                              ? 'bg-red-100 text-red-600'
+                              : booking.status === 'completed'
+                                ? 'bg-gray-200 text-gray-700'
+                                : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {b.status}
+                      {booking.status}
                     </span>
                   </td>
                 </tr>
@@ -238,7 +232,6 @@ export default function BookingsPage() {
           </table>
         </div>
       )}
-
     </div>
   )
 }

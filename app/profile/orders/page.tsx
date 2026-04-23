@@ -1,15 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+
+type OrderItem = {
+  name: string
+  quantity: number
+  price: number
+}
 
 type Order = {
   id: string
   created_at: string
   status: string
   total: number
-  items: any[]
+  items: OrderItem[]
 }
 
 export default function OrdersPage() {
@@ -19,11 +25,7 @@ export default function OrdersPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchOrders()
-  }, [])
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
 
     const {
@@ -41,29 +43,33 @@ export default function OrdersPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    setOrders(data || [])
+    setOrders((data as Order[]) || [])
     setLoading(false)
-  }
+  }, [router])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchOrders()
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [fetchOrders])
 
   const getStatusStyle = (status: string) => {
-    if (status === 'completed')
-      return 'bg-green-100 text-green-700'
-    if (status === 'cancelled')
-      return 'bg-red-100 text-red-600'
+    if (status === 'completed') return 'bg-green-100 text-green-700'
+    if (status === 'cancelled') return 'bg-red-100 text-red-600'
     return 'bg-yellow-100 text-yellow-700'
   }
 
   return (
     <div className="min-h-screen bg-[#F7EEDF] p-6">
       <div className="max-w-2xl mx-auto space-y-6">
-
-        {/* HEADER */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.push('/profile')}
             className="text-sm text-gray-500 hover:text-black"
           >
-            ← Back
+            Back
           </button>
 
           <h1 className="text-xl sm:text-2xl font-semibold">
@@ -73,21 +79,18 @@ export default function OrdersPage() {
           <div />
         </div>
 
-        {/* LOADING */}
         {loading && (
           <p className="text-gray-500 text-sm text-center">
             Loading orders...
           </p>
         )}
 
-        {/* EMPTY */}
         {!loading && orders.length === 0 && (
           <div className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl text-center text-gray-400 shadow-md">
             No orders yet
           </div>
         )}
 
-        {/* LIST */}
         {orders.map((order) => {
           const isOpen = expanded === order.id
 
@@ -96,11 +99,8 @@ export default function OrdersPage() {
               key={order.id}
               className="bg-[#F7EEDF] border border-[#e5dccb] rounded-3xl shadow-md p-5 space-y-3 hover:shadow-lg transition"
             >
-              {/* HEADER */}
               <div
-                onClick={() =>
-                  setExpanded(isOpen ? null : order.id)
-                }
+                onClick={() => setExpanded(isOpen ? null : order.id)}
                 className="flex justify-between items-center cursor-pointer"
               >
                 <div>
@@ -122,33 +122,31 @@ export default function OrdersPage() {
                   </span>
 
                   <span className="text-gray-400 text-lg">
-                    {isOpen ? '−' : '+'}
+                    {isOpen ? '-' : '+'}
                   </span>
                 </div>
               </div>
 
-              {/* ITEMS */}
               {isOpen && (
                 <div className="border-t border-[#e5dccb] pt-3 space-y-2 text-sm">
-                  {order.items?.map((item, i) => (
+                  {order.items?.map((item, index) => (
                     <div
-                      key={i}
+                      key={index}
                       className="flex justify-between text-gray-700"
                     >
                       <span>
-                        {item.name} × {item.quantity}
+                        {item.name} x {item.quantity}
                       </span>
                       <span>
-                        €{(item.price * item.quantity).toFixed(2)}
+                        EUR {(item.price * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* TOTAL */}
               <div className="text-right font-semibold text-[#C6A96B] text-lg">
-                €{order.total?.toFixed(2)}
+                EUR {order.total?.toFixed(2)}
               </div>
             </div>
           )

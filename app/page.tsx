@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 
 type Service = {
@@ -24,6 +23,7 @@ type Product = {
   is_on_sale: boolean
   sale_price: number | null
   image_url: string
+  is_out_of_stock: boolean
 }
 
 type Slide = {
@@ -35,6 +35,11 @@ type Slide = {
   image_mobile: string
 }
 
+type TrackPayload = Record<
+  string,
+  string | number | boolean | null | string[] | undefined
+>
+
 function Counter({ value }: { value: number }) {
   const count = useMotionValue(0)
   const rounded = useTransform(count, (latest) => Math.floor(latest))
@@ -43,11 +48,12 @@ function Counter({ value }: { value: number }) {
   useEffect(() => {
     const controls = animate(count, value, { duration: 2 })
     const unsubscribe = rounded.on('change', (v) => setDisplay(v))
+
     return () => {
       controls.stop()
       unsubscribe()
     }
-  }, [value])
+  }, [count, rounded, value])
 
   return <span>{display}+</span>
 }
@@ -61,32 +67,26 @@ export default function HomePage() {
   const [slides, setSlides] = useState<Slide[]>([])
   const [current, setCurrent] = useState(0)
 
-  const [productIndex, setProductIndex] = useState(0)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-
-  const visibleCount = 4
-
-  useEffect(() => {
-    fetchData()
-    fetchHero()
-  }, [])
-
-  useEffect(() => {
-    if (!slides.length) return
-    const interval = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [slides])
-
-  const fetchData = async () => {
-    const { data: s } = await supabase.from('services').select('*')
-    const { data: p } = await supabase.from('products').select('*')
-    if (s) setServices(s)
-    if (p) setProducts(p)
+  const trackFbEvent = (event: string, data?: TrackPayload) => {
+    if (typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', event, data)
+    }
   }
 
-  const fetchHero = async () => {
+  async function fetchData() {
+    const { data: serviceData } = await supabase.from('services').select('*')
+    const { data: productData } = await supabase.from('products').select('*')
+
+    if (serviceData) {
+      setServices(serviceData)
+    }
+
+    if (productData) {
+      setProducts(productData)
+    }
+  }
+
+  async function fetchHero() {
     const { data } = await supabase
       .from('content')
       .select('*')
@@ -94,9 +94,28 @@ export default function HomePage() {
       .single()
 
     if (data?.value?.slides) {
-      setSlides(data.value.slides)
+      setSlides(data.value.slides as Slide[])
     }
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchData()
+      void fetchHero()
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!slides.length) return
+
+    const interval = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % slides.length)
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [slides])
 
   const currentSlide = slides[current]
 
@@ -107,11 +126,12 @@ export default function HomePage() {
 
   return (
     <main className="bg-[#F7EEDF] text-[#1A1A1A]">
-
-      {/* HERO */}
-      <section className="relative h-[40vh] sm:h-[70vh] md:h-[90vh] flex items-center justify-center text-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${currentSlide?.image_desktop || '/assets/product1.jpg'})` }}
+      <section className="relative flex h-[40vh] items-center justify-center overflow-hidden text-center sm:h-[70vh] md:h-[90vh]">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${currentSlide?.image_desktop || '/assets/product1.jpg'})`,
+          }}
         />
         <div className="absolute inset-0 bg-black/60" />
 
@@ -119,9 +139,9 @@ export default function HomePage() {
           key={current}
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 text-white max-w-2xl px-6"
+          className="relative z-10 max-w-2xl px-6 text-white"
         >
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-playfair mb-6">
+          <h1 className="mb-6 text-3xl font-playfair sm:text-5xl md:text-6xl">
             {currentSlide?.title || 'Elevate Your Beauty Experience'}
           </h1>
 
@@ -130,76 +150,71 @@ export default function HomePage() {
           </p>
 
           <button
-           onClick={() => {
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    ;(window as any).fbq('track', 'InitiateCheckout', {
-      content_name: currentSlide?.cta_text || 'Book Now',
-    })
-  }
-
-  router.push(currentSlide?.cta_link || '/book')
-}}
-className="bg-[#C6A96B] px-8 py-3 rounded-full shadow-lg hover:scale-105"
->
-{currentSlide?.cta_text || 'Book Now'}
+            onClick={() => {
+              trackFbEvent('InitiateCheckout', {
+                content_name: currentSlide?.cta_text || 'Book Now',
+              })
+              router.push(currentSlide?.cta_link || '/book')
+            }}
+            className="rounded-full bg-[#C6A96B] px-8 py-3 shadow-lg hover:scale-105"
+          >
+            {currentSlide?.cta_text || 'Book Now'}
           </button>
         </motion.div>
       </section>
 
-      {/* SERVICES */}
-      <section className="max-w-7xl mx-auto px-4 pt-6 pb-12 sm:pb-16">
-        <h2 className="text-3xl sm:text-4xl font-playfair text-center mb-12">
+      <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:pb-16">
+        <h2 className="mb-12 text-center text-3xl font-playfair sm:text-4xl">
           Treatments
         </h2>
 
-        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory py-4">
-          {services.map((s) => (
-            <motion.div key={s.id} whileHover={{ y: -6 }}
-              className="snap-center min-w-[42%] sm:min-w-[23%] bg-white rounded-3xl shadow-lg flex flex-col relative"
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto py-4">
+          {services.map((service) => (
+            <motion.div
+              key={service.id}
+              whileHover={{ y: -6 }}
+              className="relative flex min-w-[42%] snap-center flex-col rounded-3xl bg-white shadow-lg sm:min-w-[23%]"
             >
-              {s.is_on_sale && s.sale_price && (
-                <div className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10">
-                  -{calcDiscount(s.price, s.sale_price)}%
+              {service.is_on_sale && service.sale_price && (
+                <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-2 py-1 text-xs text-white">
+                  -{calcDiscount(service.price, service.sale_price)}%
                 </div>
               )}
 
               <div
-  onClick={() => router.push(`/services/${s.id}`)}
-  className="aspect-[4/3] w-full bg-cover bg-center rounded-t-3xl overflow-hidden cursor-pointer"
-  style={{ backgroundImage: `url(${s.image_url})` }}
-/>
+                onClick={() => router.push(`/services/${service.id}`)}
+                className="aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-t-3xl bg-cover bg-center"
+                style={{ backgroundImage: `url(${service.image_url})` }}
+              />
 
-              <div className="p-4 flex flex-col flex-1 justify-between">
-                <h3 className="text-sm font-semibold">{s.name}</h3>
+              <div className="flex flex-1 flex-col justify-between p-4">
+                <h3 className="text-sm font-semibold">{service.name}</h3>
 
                 <div className="mt-2">
-                  {s.is_on_sale && s.sale_price ? (
-                    <div className="flex gap-2 items-center">
-                      <span className="text-[#C6A96B] font-semibold">
-                        €{s.sale_price}
+                  {service.is_on_sale && service.sale_price ? (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[#C6A96B]">
+                        EUR {service.sale_price}
                       </span>
-                      <span className="text-gray-400 line-through text-sm">
-                        €{s.price}
+                      <span className="text-sm text-gray-400 line-through">
+                        EUR {service.price}
                       </span>
                     </div>
                   ) : (
-                    <span className="text-[#C6A96B] font-semibold">
-                      €{s.price}
+                    <span className="font-semibold text-[#C6A96B]">
+                      EUR {service.price}
                     </span>
                   )}
                 </div>
 
                 <button
                   onClick={() => {
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    ;(window as any).fbq('track', 'InitiateCheckout')
-  }
-
-  router.push('/book')
-}}
-className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
->
-Book Now
+                    trackFbEvent('InitiateCheckout')
+                    router.push('/book')
+                  }}
+                  className="mt-4 w-full rounded-full bg-[#C6A96B] py-2.5 text-sm text-white"
+                >
+                  Book Now
                 </button>
               </div>
             </motion.div>
@@ -207,138 +222,108 @@ Book Now
         </div>
       </section>
 
-      {/* STATS */}
-      <section className="pt-6 pb-0 text-center">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-5xl mx-auto">
+      <section className="pb-0 pt-6 text-center">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 sm:grid-cols-4">
           {[
             { label: 'Happy Clients', value: 5000 },
             { label: 'Treatments Done', value: 12000 },
             { label: 'Years Experience', value: 5 },
-            { label: '5★ Reviews', value: 500 },
+            { label: '5-Star Reviews', value: 500 },
           ].map((item, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}>
               <h3 className="text-4xl font-bold text-[#C6A96B]">
                 <Counter value={item.value} />
               </h3>
-              <p className="text-sm mt-2 text-gray-600">{item.label}</p>
+              <p className="mt-2 text-sm text-gray-600">{item.label}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* PRODUCTS */}
-      <section className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
-        <h2 className="text-3xl sm:text-4xl font-playfair text-center mb-12">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:py-24">
+        <h2 className="mb-12 text-center text-3xl font-playfair sm:text-4xl">
           Skin Care Products Shop
         </h2>
 
-        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory py-4">
-          {products.map((p) => (
-            <motion.div key={p.id} whileHover={{ y: -6 }}
-              className="snap-center min-w-[42%] sm:min-w-[23%] bg-white rounded-3xl shadow-lg flex flex-col relative"
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto py-4">
+          {products.map((product) => (
+            <motion.div
+              key={product.id}
+              whileHover={{ y: -6 }}
+              className="relative flex min-w-[42%] snap-center flex-col rounded-3xl bg-white shadow-lg sm:min-w-[23%]"
             >
-              {p.is_on_sale && p.sale_price && (
-                <div className="absolute top-3 left-3 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10">
-                  -{calcDiscount(p.price, p.sale_price)}%
+              {product.is_out_of_stock && (
+                <div className="absolute right-3 top-3 z-10 rounded-full bg-gray-900/85 px-2 py-1 text-xs text-white">
+                  Out of Stock
+                </div>
+              )}
+              {product.is_on_sale && product.sale_price && (
+                <div className="absolute left-3 top-3 z-10 rounded-full bg-red-500 px-2 py-1 text-xs text-white">
+                  -{calcDiscount(product.price, product.sale_price)}%
                 </div>
               )}
 
               <div
-                onClick={() => router.push(`/shop/${p.id}`)}
-                className="aspect-[4/3] w-full bg-cover bg-center cursor-pointer rounded-t-3xl overflow-hidden"
-                style={{ backgroundImage: `url(${p.image_url})` }}
+                onClick={() => router.push(`/shop/${product.id}`)}
+                className={`aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-t-3xl bg-cover bg-center ${
+                  product.is_out_of_stock ? 'grayscale opacity-70' : ''
+                }`}
+                style={{ backgroundImage: `url(${product.image_url})` }}
               />
 
-              <div className="p-4 flex flex-col flex-1 justify-between">
-                <h3 className="text-sm font-semibold">{p.name}</h3>
+              <div className="flex flex-1 flex-col justify-between p-4">
+                <h3 className="text-sm font-semibold">{product.name}</h3>
 
                 <div className="mt-2">
-                  {p.is_on_sale && p.sale_price ? (
-                    <div className="flex gap-2 items-center">
-                      <span className="text-[#C6A96B] font-semibold">
-                        €{p.sale_price}
+                  {product.is_on_sale && product.sale_price ? (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[#C6A96B]">
+                        EUR {product.sale_price}
                       </span>
-                      <span className="text-gray-400 line-through text-sm">
-                        €{p.price}
+                      <span className="text-sm text-gray-400 line-through">
+                        EUR {product.price}
                       </span>
                     </div>
                   ) : (
-                    <span className="text-[#C6A96B] font-semibold">
-                      €{p.price}
+                    <span className="font-semibold text-[#C6A96B]">
+                      EUR {product.price}
                     </span>
                   )}
                 </div>
 
                 <button
-                 onClick={() => {
-  addToCart({
-    ...p,
-    image: p.image_url,
-  })
+                  onClick={() => {
+                    if (product.is_out_of_stock) {
+                      return
+                    }
 
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    ;(window as any).fbq('track', 'AddToCart', {
-      content_name: p.name,
-      content_ids: [p.id],
-      content_type: 'product',
-      value: p.price,
-      currency: 'EUR',
-    })
-  }
-}
-                  }
-                  className="mt-4 w-full bg-[#C6A96B] text-white py-2.5 rounded-full text-sm"
+                    addToCart({
+                      ...product,
+                      image: product.image_url,
+                    })
+
+                    trackFbEvent('AddToCart', {
+                      content_name: product.name,
+                      content_ids: [product.id],
+                      content_type: 'product',
+                      value: product.price,
+                      currency: 'EUR',
+                    })
+                  }}
+                  disabled={product.is_out_of_stock}
+                  className={`mt-4 w-full rounded-full py-2.5 text-sm ${
+                    product.is_out_of_stock
+                      ? 'cursor-not-allowed bg-gray-300 text-gray-600'
+                      : 'bg-[#C6A96B] text-white'
+                  }`}
                 >
-                  Add to Cart
+                  {product.is_out_of_stock ? 'Out of Stock' : 'Add to Cart'}
                 </button>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
-
-      {/* MODAL */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full overflow-hidden relative">
-            <button onClick={() => setSelectedProduct(null)} className="absolute top-3 right-3">
-              <X />
-            </button>
-
-            <div
-              className="aspect-[4/3] w-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${selectedProduct.image_url})` }}
-            />
-
-            <div className="p-5">
-              <h2 className="text-lg font-semibold">{selectedProduct.name}</h2>
-
-              <button
-                onClick={() => {
-  addToCart({
-    ...selectedProduct,
-    image: selectedProduct.image_url,
-  })
-
-  if (typeof window !== 'undefined' && (window as any).fbq) {
-    ;(window as any).fbq('track', 'AddToCart', {
-      content_name: selectedProduct.name,
-      content_ids: [selectedProduct.id],
-      content_type: 'product',
-      value: selectedProduct.price,
-      currency: 'EUR',
-    })
-  }
-}}
-className="mt-6 w-full bg-[#C6A96B] text-white py-3 rounded-full"
->
-Add to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </main>
   )
 }

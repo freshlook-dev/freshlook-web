@@ -11,24 +11,33 @@ import CartDrawer from '@/components/cart/CartDrawer'
 import {
   Home,
   Sparkles,
-  Calendar,
   ShoppingBag,
   Info,
   Phone,
   ChevronRight,
+  Menu,
+  User,
 } from 'lucide-react'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
+
+type Profile = {
+  points: number | null
+  role: string | null
+  full_name: string | null
+  avatar_url: string | null
+}
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [openCart, setOpenCart] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-
-  const [user, setUser] = useState<any>(null)
-  const [points, setPoints] = useState<number>(0)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [points, setPoints] = useState(0)
   const [role, setRole] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [initials, setInitials] = useState('')
   const [avatar, setAvatar] = useState<string | null>(null)
+  const [avatarVersion, setAvatarVersion] = useState('')
 
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -46,38 +55,40 @@ export default function Header() {
       setInitials('')
       setRole(null)
       setAvatar(null)
+      setAvatarVersion('')
       return
     }
 
-    const user = session.user
-    setUser(user)
+    const currentUser = session.user
+    setUser(currentUser)
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
-      .single()
+      .eq('id', currentUser.id)
+      .single<Profile>()
 
-    if (profile) {
-      setPoints(profile.points || 0)
-      setRole(profile.role || null)
+    if (!profile) return
 
-      const name = profile.full_name || ''
-      const init = name
-        .split(' ')
-        .filter(Boolean)
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
+    setPoints(profile.points || 0)
+    setRole(profile.role || null)
 
-      setInitials(init || user.email?.[0]?.toUpperCase() || '')
+    const name = profile.full_name || ''
+    const init = name
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase()
 
-      // ✅ FIXED HERE (no double URL)
-      if (profile.avatar_url) {
-        setAvatar(profile.avatar_url)
-      } else {
-        setAvatar(null)
-      }
+    setInitials(init || currentUser.email?.[0]?.toUpperCase() || '')
+
+    if (profile.avatar_url) {
+      setAvatar(profile.avatar_url)
+      setAvatarVersion(`${Date.now()}`)
+    } else {
+      setAvatar(null)
+      setAvatarVersion('')
     }
   }
 
@@ -87,15 +98,18 @@ export default function Header() {
     }
 
     window.addEventListener('scroll', handleScroll)
-    getUser()
+    const initialFetch = window.setTimeout(() => {
+      void getUser()
+    }, 0)
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
-      getUser()
+      void getUser()
     })
 
     return () => {
+      window.clearTimeout(initialFetch)
       window.removeEventListener('scroll', handleScroll)
       subscription.unsubscribe()
     }
@@ -106,8 +120,8 @@ export default function Header() {
   }, [isOpen])
 
   useEffect(() => {
-    const handleClick = (e: any) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+    const handleClick = (event: MouseEvent) => {
+      if (menuRef.current && event.target instanceof Node && !menuRef.current.contains(event.target)) {
         setMenuOpen(false)
       }
     }
@@ -131,7 +145,7 @@ export default function Header() {
     { name: 'Contact', href: '/contact' },
   ]
 
-  const icons: any = {
+  const icons: Record<string, React.ReactNode> = {
     Home: <Home size={20} strokeWidth={1.2} />,
     Services: <Sparkles size={20} strokeWidth={1.2} />,
     Shop: <ShoppingBag size={20} strokeWidth={1.2} />,
@@ -143,13 +157,10 @@ export default function Header() {
     <>
       <header
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          scrolled
-  ? 'bg-white shadow-sm'
-  : 'bg-white'
+          scrolled ? 'bg-white shadow-sm' : 'bg-white'
         }`}
       >
         <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
-
           <Link href="/">
             <Image src="/assets/logo.png" alt="Fresh Look" width={140} height={40} />
           </Link>
@@ -171,10 +182,12 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-4">
-
-            {/* CART */}
-            <button onClick={() => setOpenCart(true)} className="relative">
-              🛒
+            <button
+              onClick={() => setOpenCart(true)}
+              className="relative"
+              aria-label="Open cart"
+            >
+              <ShoppingBag size={20} strokeWidth={1.8} />
               {cart.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-[#C6A96B] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {cart.length}
@@ -186,24 +199,25 @@ export default function Header() {
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-semibold border border-[#e5dccb] bg-gray-100"
+                aria-label="Open account menu"
               >
                 {user ? (
                   avatar ? (
                     <img
-                      src={`${avatar}?t=${Date.now()}`}
+                      src={avatarVersion ? `${avatar}?t=${avatarVersion}` : avatar}
+                      alt="Profile avatar"
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-sm text-gray-700">{initials}</span>
                   )
                 ) : (
-                  '👤'
+                  <User size={18} />
                 )}
               </button>
 
               {menuOpen && (
                 <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-xl p-4 flex flex-col gap-2 z-[9999]">
-
                   {!user ? (
                     <>
                       <button
@@ -228,7 +242,7 @@ export default function Header() {
                           {points} pts
                         </p>
                         <p className="text-xs text-gray-400">
-                          (€{euro})
+                          (EUR {euro})
                         </p>
                       </div>
 
@@ -263,13 +277,12 @@ export default function Header() {
                       </button>
                     </>
                   )}
-
                 </div>
               )}
             </div>
 
-            <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
-              ☰
+            <button onClick={() => setIsOpen(!isOpen)} className="md:hidden" aria-label="Open menu">
+              <Menu size={20} />
             </button>
           </div>
         </div>
@@ -293,14 +306,12 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.4 }}
-              className="fixed top-0 right-0 h-full w-[80%] max-w-sm z-[9999]
-              bg-gradient-to-b from-white via-neutral-50 to-neutral-100
-              backdrop-blur-xl shadow-2xl flex flex-col"
+              className="fixed top-0 right-0 h-full w-[80%] max-w-sm z-[9999] bg-gradient-to-b from-white via-neutral-50 to-neutral-100 backdrop-blur-xl shadow-2xl flex flex-col"
             >
               <div className="flex justify-between items-center px-6 py-6 border-b border-neutral-200">
                 <Image src="/assets/logo.png" alt="Fresh Look" width={100} height={30} />
-                <button onClick={() => setIsOpen(false)} className="text-2xl">
-                  ✕
+                <button onClick={() => setIsOpen(false)} className="text-2xl" aria-label="Close menu">
+                  ×
                 </button>
               </div>
 
@@ -336,37 +347,35 @@ export default function Header() {
                 ))}
               </div>
 
-<div className="px-6 mt-8 space-y-3">
+              <div className="px-6 mt-8 space-y-3">
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    router.push('/book')
+                  }}
+                  className="w-full bg-[#C6A96B] text-white py-3 rounded-xl"
+                >
+                  Book Appointment
+                </button>
 
-  <button
-    onClick={() => {
-      setIsOpen(false)
-      router.push('/book')
-    }}
-    className="w-full bg-[#C6A96B] text-white py-3 rounded-xl"
-  >
-    Book Appointment
-  </button>
+                {user && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false)
+                      router.push('/profile/points')
+                    }}
+                    className="w-full border py-3 rounded-xl"
+                  >
+                    Use Points
+                  </button>
+                )}
 
-  {user && (
-    <button
-      onClick={() => {
-        setIsOpen(false)
-        router.push('/profile/points')
-      }}
-      className="w-full border py-3 rounded-xl"
-    >
-      Use Points
-    </button>
-  )}
-
-  {user && (
-    <div className="border p-3 rounded-xl text-sm text-gray-500">
-      No upcoming appointments
-    </div>
-  )}
-
-</div>
+                {user && (
+                  <div className="border p-3 rounded-xl text-sm text-gray-500">
+                    No upcoming appointments
+                  </div>
+                )}
+              </div>
 
               <div className="flex-1" />
             </motion.div>

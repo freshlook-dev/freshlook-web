@@ -33,7 +33,7 @@ export default function ContactPage() {
       setName('')
       setPhone('')
       setMessage('')
-    } catch (err) {
+    } catch {
       alert('Something went wrong')
     }
 
@@ -42,127 +42,109 @@ export default function ContactPage() {
 
   return (
     <main className="w-full bg-[#F7EEDF] py-12">
-      <div className="max-w-6xl mx-auto px-4">
-
-        {/* HEADER */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl sm:text-5xl font-playfair mb-4">
-            Contact Us
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base">
-            We’re here to help you with any questions or bookings
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-3xl font-playfair sm:text-5xl">Contact Us</h1>
+          <p className="text-sm text-gray-500 sm:text-base">
+            We&apos;re here to help you with any questions or bookings
           </p>
         </div>
 
-        {/* CONTENT */}
-        <div className="grid md:grid-cols-2 gap-10">
-
-          {/* LEFT - INFO */}
+        <div className="grid gap-10 md:grid-cols-2">
           <div className="space-y-6">
-
-            <div className="bg-[#F7EEDF] border border-[#e5dccb] p-5 rounded-3xl shadow-md">
-              <h3 className="font-semibold mb-2">Phone</h3>
-              <p className="text-gray-600 text-sm">
-                +383 44 459 659<br />
-                +383 49 459 659 (WhatsApp)<br />
+            <div className="rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] p-5 shadow-md">
+              <h3 className="mb-2 font-semibold">Phone</h3>
+              <p className="text-sm text-gray-600">
+                +383 44 459 659
+                <br />
+                +383 49 459 659 (WhatsApp)
+                <br />
                 +383 38 721 771
               </p>
             </div>
 
-            <div className="bg-[#F7EEDF] border border-[#e5dccb] p-5 rounded-3xl shadow-md">
-              <h3 className="font-semibold mb-2">Email</h3>
-              <p className="text-gray-600 text-sm">
-                info@freshlook-ks.com
-              </p>
+            <div className="rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] p-5 shadow-md">
+              <h3 className="mb-2 font-semibold">Email</h3>
+              <p className="text-sm text-gray-600">info@freshlook-ks.com</p>
             </div>
 
-            <div className="bg-[#F7EEDF] border border-[#e5dccb] p-5 rounded-3xl shadow-md">
-              <h3 className="font-semibold mb-2">Locations</h3>
-              <p className="text-gray-600 text-sm space-y-1">
+            <div className="rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] p-5 shadow-md">
+              <h3 className="mb-2 font-semibold">Locations</h3>
+              <p className="space-y-1 text-sm text-gray-600">
                 <a
                   href="https://www.google.com/maps/dir//FreshLook+Aesthetics+Prishtin%C3%AB,+Rruga,+nr.119+Rruga+Ferid+Curri"
                   target="_blank"
+                  rel="noreferrer"
                   className="block hover:text-[#C6A96B]"
                 >
-                  Prishtinë – Rr. Ferid Curri (Arbëri)
+                  Prishtine - Rr. Ferid Curri (Arberi)
                 </a>
 
                 <a
                   href="https://www.google.com/maps/dir//Fresh+Look+Aesthetics+Fush%C3%AB+Kosov%C3%AB,+17+Shkurti"
                   target="_blank"
+                  rel="noreferrer"
                   className="block hover:text-[#C6A96B]"
                 >
-                  Fushë Kosovë – Rr. 17 Shkurti
+                  Fushe Kosove - Rr. 17 Shkurti
                 </a>
               </p>
             </div>
 
-            {/* WHATSAPP */}
             <a
               href="https://wa.me/38349459659"
               target="_blank"
-              className="block text-center bg-[#25D366] hover:bg-[#1ebe5d] transition text-white py-3 rounded-full shadow-md"
+              rel="noreferrer"
+              className="block rounded-full bg-[#25D366] py-3 text-center text-white shadow-md transition hover:bg-[#1ebe5d]"
             >
               Chat on WhatsApp
             </a>
-
           </div>
 
-          {/* RIGHT - FORM */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-[#F7EEDF] border border-[#e5dccb] p-6 rounded-3xl shadow-md"
+            className="rounded-3xl border border-[#e5dccb] bg-[#F7EEDF] p-6 shadow-md"
           >
-            <h3 className="font-semibold mb-4 text-lg">
-              Send a Message
-            </h3>
+            <h3 className="mb-4 text-lg font-semibold">Send a Message</h3>
 
             <div className="space-y-4">
-
               <input
                 type="text"
                 placeholder="Full Name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full p-3 border border-[#e5dccb] rounded-xl bg-white"
+                onChange={(event) => setName(event.target.value)}
+                className="w-full rounded-xl border border-[#e5dccb] bg-white p-3"
               />
 
               <input
                 type="tel"
                 placeholder="Phone Number"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-3 border border-[#e5dccb] rounded-xl bg-white"
+                onChange={(event) => setPhone(event.target.value)}
+                className="w-full rounded-xl border border-[#e5dccb] bg-white p-3"
               />
 
               <textarea
                 placeholder="Your Message"
                 rows={4}
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full p-3 border border-[#e5dccb] rounded-xl bg-white"
+                onChange={(event) => setMessage(event.target.value)}
+                className="w-full rounded-xl border border-[#e5dccb] bg-white p-3"
               />
 
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="w-full bg-[#C6A96B] hover:bg-[#b8965a] transition text-white py-3 rounded-full shadow-md"
+                className="w-full rounded-full bg-[#C6A96B] py-3 text-white shadow-md transition hover:bg-[#b8965a]"
               >
                 {loading ? 'Sending...' : 'Send Message'}
               </button>
 
-              {success && (
-                <p className="text-green-600 text-sm text-center">
-                  {success}
-                </p>
-              )}
-
+              {success && <p className="text-center text-sm text-green-600">{success}</p>}
             </div>
           </motion.div>
-
         </div>
-
       </div>
     </main>
   )
